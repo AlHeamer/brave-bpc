@@ -10,8 +10,8 @@ export default defineConfig({
       target: "react",
       autoCodeSplitting: true,
     }),
-    tailwindcss(),
     react(),
+    tailwindcss(),
   ],
   server: {
     port: 3000,

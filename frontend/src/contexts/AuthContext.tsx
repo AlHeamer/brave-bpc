@@ -3,16 +3,18 @@ import { createContext, useContext, useState, ReactNode } from "react";
 interface User {
   id: string;
   name: string;
+  level: string;
+  charId: string;
 }
 
-interface AuthContextType {
+export interface AuthContext {
   user: User | null;
   isAuthenticated: boolean;
   login: (user: User) => void;
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContext | null>(null);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,

@@ -1,22 +1,36 @@
-import { HeroUIProvider } from "@heroui/react";
-import { Outlet, createRootRoute } from "@tanstack/react-router";
+import { Avatar, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, HeroUIProvider, Link, Navbar, NavbarContent, NavbarItem } from "@heroui/react";
+import { Outlet, createRootRouteWithContext  } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { AuthProvider } from "../contexts/AuthContext";
+import type { AuthContext } from "../contexts/AuthContext";
+import { NavBar } from "../components/NavBar";
 
-export const Route = createRootRoute({
+interface MyRouterContext {
+  auth: AuthContext
+}
+
+export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: RootComponent,
+  notFoundComponent: () => {
+    return (
+      <div className="flex gap-4">
+        <p>Page not found</p>
+        <Link showAnchorIcon href="/">Back Home</Link>
+      </div>
+    )
+  },
 });
 
 function RootComponent() {
+  const {auth} = Route.useRouteContext()
   return (
-    <AuthProvider>
+
       <HeroUIProvider>
         <main className="dark text-foreground bg-background">
-          <div>Hello "__root"!</div>
+          <NavBar authContext={auth}/>
           <Outlet />
           <TanStackRouterDevtools />
         </main>
       </HeroUIProvider>
-    </AuthProvider>
+
   );
 }
