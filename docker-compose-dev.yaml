@@ -13,22 +13,19 @@ services:
       MYSQL_ROOT_PASSWORD: local
 
   frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
+    build: 
+      context: ./frontend
+      target: dev
     container_name: frontend
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
-
-  node:
-    image: arm64v8/node:23
-    container_name: node-cmd
-    working_dir: /app
-    volumes:
-      - ./frontend:/app
+    develop:
+      watch:
+        - path: ./frontend
+          action: sync
+          target: /app
+          ignore:
+            - node_modules/
 
 volumes:
   db:
-  frontend:
