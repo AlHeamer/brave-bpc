@@ -1,35 +1,38 @@
+import Cookies from "js-cookie";
 import { createContext, useContext, useState, ReactNode } from "react";
 
 interface User {
-  id: string;
-  name: string;
+  character_name: string;
+  auth_level: string;
+  character_id: string;
 }
 
-interface AuthContextType {
+export interface AuthContext {
   user: User | null;
   isAuthenticated: boolean;
-  login: (user: User) => void;
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContext | null>(null);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const cookie = Cookies.get('brave-bpc')
 
-  const login = (user: User) => {
-    setUser(user);
-  };
+  const authCookie = cookie
+    ? JSON.parse(atob(cookie)) : null
+
+  const [user, setUser] = useState<User | null>(authCookie);
 
   const logout = () => {
     setUser(null);
+    Cookies.remove('brave-bpc')
   };
 
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, login, logout }}
+      value={{ user, isAuthenticated: !!user, logout }}
     >
       {children}
     </AuthContext.Provider>

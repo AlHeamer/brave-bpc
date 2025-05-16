@@ -11,59 +11,213 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as ProtectedImport } from './routes/_protected'
+import { Route as AuthImport } from './routes/_auth'
+import { Route as IndexImport } from './routes/index'
+import { Route as AuthRequestsImport } from './routes/_auth.requests'
+import { Route as AuthListImport } from './routes/_auth.list'
+import { Route as AuthDashboardImport } from './routes/_auth.dashboard'
+import { Route as AuthAdminImport } from './routes/_auth.admin'
+import { Route as AuthRequestsRequestIdImport } from './routes/_auth.requests.$requestId'
 
 // Create/Update Routes
 
-const ProtectedRoute = ProtectedImport.update({
-  id: '/_protected',
+const AuthRoute = AuthImport.update({
+  id: '/_auth',
   getParentRoute: () => rootRoute,
+} as any)
+
+const IndexRoute = IndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const AuthRequestsRoute = AuthRequestsImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => AuthRoute,
+} as any)
+
+const AuthListRoute = AuthListImport.update({
+  id: '/list',
+  path: '/list',
+  getParentRoute: () => AuthRoute,
+} as any)
+
+const AuthDashboardRoute = AuthDashboardImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthRoute,
+} as any)
+
+const AuthAdminRoute = AuthAdminImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthRoute,
+} as any)
+
+const AuthRequestsRequestIdRoute = AuthRequestsRequestIdImport.update({
+  id: '/$requestId',
+  path: '/$requestId',
+  getParentRoute: () => AuthRequestsRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_protected': {
-      id: '/_protected'
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/_auth': {
+      id: '/_auth'
       path: ''
       fullPath: ''
-      preLoaderRoute: typeof ProtectedImport
+      preLoaderRoute: typeof AuthImport
       parentRoute: typeof rootRoute
+    }
+    '/_auth/admin': {
+      id: '/_auth/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthAdminImport
+      parentRoute: typeof AuthImport
+    }
+    '/_auth/dashboard': {
+      id: '/_auth/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthDashboardImport
+      parentRoute: typeof AuthImport
+    }
+    '/_auth/list': {
+      id: '/_auth/list'
+      path: '/list'
+      fullPath: '/list'
+      preLoaderRoute: typeof AuthListImport
+      parentRoute: typeof AuthImport
+    }
+    '/_auth/requests': {
+      id: '/_auth/requests'
+      path: '/requests'
+      fullPath: '/requests'
+      preLoaderRoute: typeof AuthRequestsImport
+      parentRoute: typeof AuthImport
+    }
+    '/_auth/requests/$requestId': {
+      id: '/_auth/requests/$requestId'
+      path: '/$requestId'
+      fullPath: '/requests/$requestId'
+      preLoaderRoute: typeof AuthRequestsRequestIdImport
+      parentRoute: typeof AuthRequestsImport
     }
   }
 }
 
 // Create and export the route tree
 
+interface AuthRequestsRouteChildren {
+  AuthRequestsRequestIdRoute: typeof AuthRequestsRequestIdRoute
+}
+
+const AuthRequestsRouteChildren: AuthRequestsRouteChildren = {
+  AuthRequestsRequestIdRoute: AuthRequestsRequestIdRoute,
+}
+
+const AuthRequestsRouteWithChildren = AuthRequestsRoute._addFileChildren(
+  AuthRequestsRouteChildren,
+)
+
+interface AuthRouteChildren {
+  AuthAdminRoute: typeof AuthAdminRoute
+  AuthDashboardRoute: typeof AuthDashboardRoute
+  AuthListRoute: typeof AuthListRoute
+  AuthRequestsRoute: typeof AuthRequestsRouteWithChildren
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthAdminRoute: AuthAdminRoute,
+  AuthDashboardRoute: AuthDashboardRoute,
+  AuthListRoute: AuthListRoute,
+  AuthRequestsRoute: AuthRequestsRouteWithChildren,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 export interface FileRoutesByFullPath {
-  '': typeof ProtectedRoute
+  '/': typeof IndexRoute
+  '': typeof AuthRouteWithChildren
+  '/admin': typeof AuthAdminRoute
+  '/dashboard': typeof AuthDashboardRoute
+  '/list': typeof AuthListRoute
+  '/requests': typeof AuthRequestsRouteWithChildren
+  '/requests/$requestId': typeof AuthRequestsRequestIdRoute
 }
 
 export interface FileRoutesByTo {
-  '': typeof ProtectedRoute
+  '/': typeof IndexRoute
+  '': typeof AuthRouteWithChildren
+  '/admin': typeof AuthAdminRoute
+  '/dashboard': typeof AuthDashboardRoute
+  '/list': typeof AuthListRoute
+  '/requests': typeof AuthRequestsRouteWithChildren
+  '/requests/$requestId': typeof AuthRequestsRequestIdRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
-  '/_protected': typeof ProtectedRoute
+  '/': typeof IndexRoute
+  '/_auth': typeof AuthRouteWithChildren
+  '/_auth/admin': typeof AuthAdminRoute
+  '/_auth/dashboard': typeof AuthDashboardRoute
+  '/_auth/list': typeof AuthListRoute
+  '/_auth/requests': typeof AuthRequestsRouteWithChildren
+  '/_auth/requests/$requestId': typeof AuthRequestsRequestIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: ''
+  fullPaths:
+    | '/'
+    | ''
+    | '/admin'
+    | '/dashboard'
+    | '/list'
+    | '/requests'
+    | '/requests/$requestId'
   fileRoutesByTo: FileRoutesByTo
-  to: ''
-  id: '__root__' | '/_protected'
+  to:
+    | '/'
+    | ''
+    | '/admin'
+    | '/dashboard'
+    | '/list'
+    | '/requests'
+    | '/requests/$requestId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_auth'
+    | '/_auth/admin'
+    | '/_auth/dashboard'
+    | '/_auth/list'
+    | '/_auth/requests'
+    | '/_auth/requests/$requestId'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
-  ProtectedRoute: typeof ProtectedRoute
+  IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRouteWithChildren
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  ProtectedRoute: ProtectedRoute,
+  IndexRoute: IndexRoute,
+  AuthRoute: AuthRouteWithChildren,
 }
 
 export const routeTree = rootRoute
@@ -76,11 +230,44 @@ export const routeTree = rootRoute
     "__root__": {
       "filePath": "__root.tsx",
       "children": [
-        "/_protected"
+        "/",
+        "/_auth"
       ]
     },
-    "/_protected": {
-      "filePath": "_protected.tsx"
+    "/": {
+      "filePath": "index.tsx"
+    },
+    "/_auth": {
+      "filePath": "_auth.tsx",
+      "children": [
+        "/_auth/admin",
+        "/_auth/dashboard",
+        "/_auth/list",
+        "/_auth/requests"
+      ]
+    },
+    "/_auth/admin": {
+      "filePath": "_auth.admin.tsx",
+      "parent": "/_auth"
+    },
+    "/_auth/dashboard": {
+      "filePath": "_auth.dashboard.tsx",
+      "parent": "/_auth"
+    },
+    "/_auth/list": {
+      "filePath": "_auth.list.tsx",
+      "parent": "/_auth"
+    },
+    "/_auth/requests": {
+      "filePath": "_auth.requests.tsx",
+      "parent": "/_auth",
+      "children": [
+        "/_auth/requests/$requestId"
+      ]
+    },
+    "/_auth/requests/$requestId": {
+      "filePath": "_auth.requests.$requestId.tsx",
+      "parent": "/_auth/requests"
     }
   }
 }
