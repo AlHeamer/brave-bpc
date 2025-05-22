@@ -44,7 +44,7 @@ function RootComponent() {
       navigate={(to, options) => router.navigate({ to, ...options })}
       useHref={(to) => router.buildLocation({ to }).href}
     >
-      <main className={`${theme} text-foreground bg-background`}>
+      <main className={`${theme} text-foreground bg-background min-h-screen flex flex-col items-center border-b gap-2`}>
         <NavBar authContext={auth} />
         <Outlet />
         <TanStackRouterDevtools />
