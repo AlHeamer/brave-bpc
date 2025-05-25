@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -8,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/AlHeamer/brave-bpc/glue"
 	"go.uber.org/zap"
 )
 
@@ -35,6 +37,7 @@ func (app *app) createApiHandlers(mux *http.ServeMux, mw *mwChain) {
 	mux.Handle("GET /api/requisition", authChain.HandleFunc(app.listRequisitionOrders))
 	mux.Handle("GET /api/requisition/{id}", authChain.HandleFunc(app.getRequisitionOrder))
 	mux.Handle("PATCH /api/requisition/{id}/cancel", authChain.HandleFunc(app.patchRequisitionOrder))
+	mux.Handle("GET /api/namemap", authChain.HandleFunc(app.getNameMap))
 
 	mux.Handle("PATCH /api/requisition/{id}/{action}", workerChain.HandleFunc(app.patchRequisitionOrder))
 	mux.Handle("GET /api/config", workerChain.HandleFunc(app.getConfig))
@@ -83,6 +86,34 @@ func apiInvalid(w http.ResponseWriter, r *http.Request) {
 
 func (app *app) getBlueprints(w http.ResponseWriter, r *http.Request) {
 	httpWrite(w, app.bpcs.Data())
+}
+
+func (app *app) getNameMap(w http.ResponseWriter, r *http.Request){
+	//TODO caching
+	//TODO limit ID count in ESI call
+	keys := app.bpcs.Keys()
+	if len(keys) > 0 {
+		names, resp, err := app.esi.ESI.UniverseApi.PostUniverseNames(context.Background(), keys, nil)
+		if err != nil {
+			http.Error(w, "error fetching type names", http.StatusInternalServerError)
+			return
+		}
+		if resp.StatusCode != http.StatusOK {
+			http.Error(w, "error fetching type names status no ok", http.StatusInternalServerError)
+			return
+		}
+
+		nameMap := func() map[int32]string {
+			nm := make(map[int32]string, len(names))
+			for _, v := range names {
+				if v.Category == string(glue.NameCategory_InventoryType) {
+					nm[v.Id] = v.Name
+				}
+			}
+			return nm
+		}()
+		httpWrite(w, nameMap)
+	}
 }
 
 func (app *app) patchRequisitionOrder(w http.ResponseWriter, r *http.Request) {
