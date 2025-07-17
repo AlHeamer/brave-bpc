@@ -7,10 +7,10 @@ CREATE TABLE config(
 );
 
 INSERT INTO config VALUES (NOW(), 'initial', '{
-"alliances": [99003214],
+"alliances": [],
 "corporations": [],
-"admin_corp": 98544197,
-"admin_char": 95154016,
+"admin_corp": 98704625,
+"admin_char": 96595706,
 "max_contracts": 2
 }');
 
