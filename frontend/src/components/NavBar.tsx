@@ -5,7 +5,6 @@ import {
   Link,
   Dropdown,
   DropdownTrigger,
-  Avatar,
   DropdownMenu,
   DropdownItem,
   Image,
@@ -19,6 +18,9 @@ import blackEveImage from "../assets/eve-sso-login-black-small.png";
 import whiteEveImage from "../assets/eve-sso-login-white-small.png";
 import { MoonIcon, SunIcon } from "./Icons";
 import { useTheme } from "../contexts/ThemeContext";
+
+const AuthMap = { 0: "GUEST", 1: "MEMBER", 2: "WORKER", 3: "ADMIN" } as const;
+type AuthLevel = keyof typeof AuthMap;
 
 export function NavBar({ authContext }: { authContext: AuthContext }) {
   const isAuthenticated = authContext?.isAuthenticated;
@@ -49,7 +51,7 @@ export function NavBar({ authContext }: { authContext: AuthContext }) {
             </NavbarItem>
           </>
         )}
-        {user?.auth_level === "admin" && (
+        {user?.auth_level === 3 && (
           <NavbarItem>
             <Link href="/admin">Admin</Link>
           </NavbarItem>
@@ -74,11 +76,16 @@ export function NavBar({ authContext }: { authContext: AuthContext }) {
                     "https://images.evetech.net/characters/" +
                     user?.character_id +
                     "/portrait",
-                  isBordered:true,
-                  radius:"sm",
-                  color:"default"
+                  isBordered: true,
+                  radius: "sm",
+                  color: "default",
                 }}
                 name={user?.character_name}
+                description={
+                  user?.auth_level != null
+                    ? AuthMap[user.auth_level as AuthLevel]
+                    : undefined
+                }
                 className="text-white"
               />
             </DropdownTrigger>
@@ -86,9 +93,10 @@ export function NavBar({ authContext }: { authContext: AuthContext }) {
               <DropdownItem
                 key="logout"
                 color="danger"
-                onClick={() =>
-                  router.navigate({ to: "/" }) && authContext.logout()
-                }
+                onClick={() => {
+                  authContext.logout();
+                  router.navigate({ to: "/" });
+                }}
               >
                 Log Out
               </DropdownItem>

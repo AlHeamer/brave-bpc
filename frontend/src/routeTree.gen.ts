@@ -8,117 +8,162 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/_auth'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthRequestsRouteImport } from './routes/_auth.requests'
+import { Route as AuthListRouteImport } from './routes/_auth.list'
+import { Route as AuthDashboardRouteImport } from './routes/_auth.dashboard'
+import { Route as AuthAdminRouteImport } from './routes/_auth.admin'
+import { Route as AuthRequestsRequestIdRouteImport } from './routes/_auth.requests.$requestId'
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as AuthImport } from './routes/_auth'
-import { Route as IndexImport } from './routes/index'
-import { Route as AuthRequestsImport } from './routes/_auth.requests'
-import { Route as AuthListImport } from './routes/_auth.list'
-import { Route as AuthDashboardImport } from './routes/_auth.dashboard'
-import { Route as AuthAdminImport } from './routes/_auth.admin'
-import { Route as AuthRequestsRequestIdImport } from './routes/_auth.requests.$requestId'
-
-// Create/Update Routes
-
-const AuthRoute = AuthImport.update({
+const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const IndexRoute = IndexImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-
-const AuthRequestsRoute = AuthRequestsImport.update({
+const AuthRequestsRoute = AuthRequestsRouteImport.update({
   id: '/requests',
   path: '/requests',
   getParentRoute: () => AuthRoute,
 } as any)
-
-const AuthListRoute = AuthListImport.update({
+const AuthListRoute = AuthListRouteImport.update({
   id: '/list',
   path: '/list',
   getParentRoute: () => AuthRoute,
 } as any)
-
-const AuthDashboardRoute = AuthDashboardImport.update({
+const AuthDashboardRoute = AuthDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AuthRoute,
 } as any)
-
-const AuthAdminRoute = AuthAdminImport.update({
+const AuthAdminRoute = AuthAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthRoute,
 } as any)
-
-const AuthRequestsRequestIdRoute = AuthRequestsRequestIdImport.update({
+const AuthRequestsRequestIdRoute = AuthRequestsRequestIdRouteImport.update({
   id: '/$requestId',
   path: '/$requestId',
   getParentRoute: () => AuthRequestsRoute,
 } as any)
 
-// Populate the FileRoutesByPath interface
+export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
+  '/admin': typeof AuthAdminRoute
+  '/dashboard': typeof AuthDashboardRoute
+  '/list': typeof AuthListRoute
+  '/requests': typeof AuthRequestsRouteWithChildren
+  '/requests/$requestId': typeof AuthRequestsRequestIdRoute
+}
+export interface FileRoutesByTo {
+  '/': typeof IndexRoute
+  '/admin': typeof AuthAdminRoute
+  '/dashboard': typeof AuthDashboardRoute
+  '/list': typeof AuthListRoute
+  '/requests': typeof AuthRequestsRouteWithChildren
+  '/requests/$requestId': typeof AuthRequestsRequestIdRoute
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/_auth': typeof AuthRouteWithChildren
+  '/_auth/admin': typeof AuthAdminRoute
+  '/_auth/dashboard': typeof AuthDashboardRoute
+  '/_auth/list': typeof AuthListRoute
+  '/_auth/requests': typeof AuthRequestsRouteWithChildren
+  '/_auth/requests/$requestId': typeof AuthRequestsRequestIdRoute
+}
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/list'
+    | '/requests'
+    | '/requests/$requestId'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/admin'
+    | '/dashboard'
+    | '/list'
+    | '/requests'
+    | '/requests/$requestId'
+  id:
+    | '__root__'
+    | '/'
+    | '/_auth'
+    | '/_auth/admin'
+    | '/_auth/dashboard'
+    | '/_auth/list'
+    | '/_auth/requests'
+    | '/_auth/requests/$requestId'
+  fileRoutesById: FileRoutesById
+}
+export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRouteWithChildren
+}
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexImport
-      parentRoute: typeof rootRoute
-    }
     '/_auth': {
       id: '/_auth'
       path: ''
       fullPath: ''
-      preLoaderRoute: typeof AuthImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_auth/admin': {
-      id: '/_auth/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthAdminImport
-      parentRoute: typeof AuthImport
-    }
-    '/_auth/dashboard': {
-      id: '/_auth/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthDashboardImport
-      parentRoute: typeof AuthImport
-    }
-    '/_auth/list': {
-      id: '/_auth/list'
-      path: '/list'
-      fullPath: '/list'
-      preLoaderRoute: typeof AuthListImport
-      parentRoute: typeof AuthImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_auth/requests': {
       id: '/_auth/requests'
       path: '/requests'
       fullPath: '/requests'
-      preLoaderRoute: typeof AuthRequestsImport
-      parentRoute: typeof AuthImport
+      preLoaderRoute: typeof AuthRequestsRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/list': {
+      id: '/_auth/list'
+      path: '/list'
+      fullPath: '/list'
+      preLoaderRoute: typeof AuthListRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/dashboard': {
+      id: '/_auth/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthDashboardRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/admin': {
+      id: '/_auth/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthAdminRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_auth/requests/$requestId': {
       id: '/_auth/requests/$requestId'
       path: '/$requestId'
       fullPath: '/requests/$requestId'
-      preLoaderRoute: typeof AuthRequestsRequestIdImport
-      parentRoute: typeof AuthRequestsImport
+      preLoaderRoute: typeof AuthRequestsRequestIdRouteImport
+      parentRoute: typeof AuthRequestsRoute
     }
   }
 }
-
-// Create and export the route tree
 
 interface AuthRequestsRouteChildren {
   AuthRequestsRequestIdRoute: typeof AuthRequestsRequestIdRoute
@@ -148,127 +193,10 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
-export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '': typeof AuthRouteWithChildren
-  '/admin': typeof AuthAdminRoute
-  '/dashboard': typeof AuthDashboardRoute
-  '/list': typeof AuthListRoute
-  '/requests': typeof AuthRequestsRouteWithChildren
-  '/requests/$requestId': typeof AuthRequestsRequestIdRoute
-}
-
-export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '': typeof AuthRouteWithChildren
-  '/admin': typeof AuthAdminRoute
-  '/dashboard': typeof AuthDashboardRoute
-  '/list': typeof AuthListRoute
-  '/requests': typeof AuthRequestsRouteWithChildren
-  '/requests/$requestId': typeof AuthRequestsRequestIdRoute
-}
-
-export interface FileRoutesById {
-  __root__: typeof rootRoute
-  '/': typeof IndexRoute
-  '/_auth': typeof AuthRouteWithChildren
-  '/_auth/admin': typeof AuthAdminRoute
-  '/_auth/dashboard': typeof AuthDashboardRoute
-  '/_auth/list': typeof AuthListRoute
-  '/_auth/requests': typeof AuthRequestsRouteWithChildren
-  '/_auth/requests/$requestId': typeof AuthRequestsRequestIdRoute
-}
-
-export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | ''
-    | '/admin'
-    | '/dashboard'
-    | '/list'
-    | '/requests'
-    | '/requests/$requestId'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | ''
-    | '/admin'
-    | '/dashboard'
-    | '/list'
-    | '/requests'
-    | '/requests/$requestId'
-  id:
-    | '__root__'
-    | '/'
-    | '/_auth'
-    | '/_auth/admin'
-    | '/_auth/dashboard'
-    | '/_auth/list'
-    | '/_auth/requests'
-    | '/_auth/requests/$requestId'
-  fileRoutesById: FileRoutesById
-}
-
-export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AuthRoute: typeof AuthRouteWithChildren
-}
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
 }
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/",
-        "/_auth"
-      ]
-    },
-    "/": {
-      "filePath": "index.tsx"
-    },
-    "/_auth": {
-      "filePath": "_auth.tsx",
-      "children": [
-        "/_auth/admin",
-        "/_auth/dashboard",
-        "/_auth/list",
-        "/_auth/requests"
-      ]
-    },
-    "/_auth/admin": {
-      "filePath": "_auth.admin.tsx",
-      "parent": "/_auth"
-    },
-    "/_auth/dashboard": {
-      "filePath": "_auth.dashboard.tsx",
-      "parent": "/_auth"
-    },
-    "/_auth/list": {
-      "filePath": "_auth.list.tsx",
-      "parent": "/_auth"
-    },
-    "/_auth/requests": {
-      "filePath": "_auth.requests.tsx",
-      "parent": "/_auth",
-      "children": [
-        "/_auth/requests/$requestId"
-      ]
-    },
-    "/_auth/requests/$requestId": {
-      "filePath": "_auth.requests.$requestId.tsx",
-      "parent": "/_auth/requests"
-    }
-  }
-}
-ROUTE_MANIFEST_END */

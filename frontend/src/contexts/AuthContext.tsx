@@ -3,7 +3,7 @@ import { createContext, useContext, useState, ReactNode } from "react";
 
 interface User {
   character_name: string;
-  auth_level: string;
+  auth_level: number;
   character_id: string;
 }
 
@@ -18,22 +18,19 @@ const AuthContext = createContext<AuthContext | null>(null);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const cookie = Cookies.get('brave-bpc')
+  const cookie = Cookies.get("brave-bpc");
 
-  const authCookie = cookie
-    ? JSON.parse(atob(cookie)) : null
+  const authCookie = cookie ? JSON.parse(atob(cookie)) : null;
 
   const [user, setUser] = useState<User | null>(authCookie);
 
   const logout = () => {
     setUser(null);
-    Cookies.remove('brave-bpc')
+    Cookies.remove("brave-bpc");
   };
 
   return (
-    <AuthContext.Provider
-      value={{ user, isAuthenticated: !!user, logout }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, logout }}>
       {children}
     </AuthContext.Provider>
   );
