@@ -357,7 +357,7 @@ func (dao *dao) listRequisitionOrders(characterId int32, status requisitionStatu
 		params.AddParam(status)
 	}
 	if characterId > 0 {
-		filter = " AND character_id = ?"
+		filter += " AND character_id = ?"
 		params.AddParam(characterId)
 	}
 
