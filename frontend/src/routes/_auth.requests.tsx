@@ -40,7 +40,7 @@ type StatusMetadataEntry = {
   color: ChipColor;
 };
 
-const statusMetadata: Record<number, StatusMetadataEntry> = {
+const statusDisplayMetadata: Record<number, StatusMetadataEntry> = {
   0: { value: 0, slug: "unknown", name: "Unknown", color: "warning" },
   1: { value: 1, slug: "open", name: "Open", color: "primary" },
   2: { value: 2, slug: "canceled", name: "Canceled", color: "default" },
@@ -51,14 +51,16 @@ const statusMetadata: Record<number, StatusMetadataEntry> = {
 const OPEN_STATUS_VALUE = 1;
 
 const statusMetadataBySlug: Record<string, StatusMetadataEntry> = {};
-for (const entry of Object.values(statusMetadata)) {
+for (const entry of Object.values(statusDisplayMetadata)) {
   statusMetadataBySlug[entry.slug] = entry;
 }
 
-const statusFilterOptions = Object.values(statusMetadata).map((entry) => ({
-  value: entry.value,
-  label: entry.name,
-}));
+const statusFilterOptions = [
+  { value: 0, label: "All" },
+  ...Object.values(statusDisplayMetadata)
+    .filter((entry) => entry.value !== 0)
+    .map((entry) => ({ value: entry.value, label: entry.name })),
+];
 
 type RequisitionSortKey =
   | "id"
@@ -82,16 +84,18 @@ const LOCK_AUTH_THRESHOLD = 2;
 
 function resolveStatusMetadata(status?: string | number): StatusMetadataEntry {
   if (status == null) {
-    return statusMetadata[OPEN_STATUS_VALUE];
+    return statusDisplayMetadata[OPEN_STATUS_VALUE];
   }
 
   if (typeof status === "number" && Number.isInteger(status)) {
-    return statusMetadata[status] ?? statusMetadata[OPEN_STATUS_VALUE];
+    return (
+      statusDisplayMetadata[status] ?? statusDisplayMetadata[OPEN_STATUS_VALUE]
+    );
   }
 
   const numericStatus = Number(status);
   if (Number.isInteger(numericStatus)) {
-    const byNumber = statusMetadata[numericStatus];
+    const byNumber = statusDisplayMetadata[numericStatus];
     if (byNumber) {
       return byNumber;
     }
@@ -104,7 +108,7 @@ function resolveStatusMetadata(status?: string | number): StatusMetadataEntry {
     }
   }
 
-  return statusMetadata[OPEN_STATUS_VALUE];
+  return statusDisplayMetadata[OPEN_STATUS_VALUE];
 }
 
 function isOpenStatus(status?: string | number): boolean {

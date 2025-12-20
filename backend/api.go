@@ -210,11 +210,19 @@ func (app *app) patchRequisitionOrder(w http.ResponseWriter, r *http.Request) {
 		app.setRequisitionLock(user, reqId)
 
 	case "unlock":
-		if _, ok := app.getRequisitionLock(reqId); !ok {
+		lock, ok := app.getRequisitionLock(reqId)
+		if !ok {
 			logger.Debug("attempting to unlock requisition that is not locked")
 			httpError(w, "resource not locked", http.StatusBadRequest)
 			return
 		}
+		if lock.CharacterId != user.CharacterId {
+			logger.Debug("attempting to unlock requisition locked by another user", zap.Any("lock", lock))
+			httpError(w, "can't unlock requisition, locked by "+lock.CharacterName, http.StatusForbidden)
+			return
+		}
+
+		app.requisitionLocks.Delete(reqId)
 
 	case "cancel":
 		lock, ok := app.getRequisitionLock(reqId)
