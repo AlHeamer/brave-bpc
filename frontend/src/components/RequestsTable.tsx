@@ -26,6 +26,7 @@ export interface RequestsTableProps {
   items: BlueprintRequest[];
   error?: unknown;
   isLoading: boolean;
+  showLockStatus: boolean;
   selectedKeys: Selection;
   sortDescriptor: SortDescriptor;
   selectedKey: number | null;
@@ -44,6 +45,7 @@ const RequestsTable = memo(
     items,
     error,
     isLoading,
+    showLockStatus,
     selectedKeys,
     sortDescriptor,
     selectedKey,
@@ -77,7 +79,9 @@ const RequestsTable = memo(
         <TableColumn allowsSorting key="status">
           Status
         </TableColumn>
-        <TableColumn key="lock">Lock</TableColumn>
+        <TableColumn key="lock" className={showLockStatus ? undefined : "hidden"}>
+          Lock
+        </TableColumn>
         <TableColumn allowsSorting key="created_at">
           Created At
         </TableColumn>
@@ -202,7 +206,9 @@ const RequestsTable = memo(
                 />
               </TableCell>
               <TableCell>{renderStatus()}</TableCell>
-              <TableCell>{renderLock()}</TableCell>
+              <TableCell className={showLockStatus ? undefined : "hidden"}>
+                {renderLock()}
+              </TableCell>
               <TableCell>{renderDate(item.created_at)}</TableCell>
               <TableCell>{renderDate(item.updated_at)}</TableCell>
               <TableCell>{item.updated_by || "N/A"}</TableCell>

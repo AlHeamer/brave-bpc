@@ -504,6 +504,7 @@ function RouteComponent() {
               error={error}
               isLoading={isLoading}
               items={sortedItems}
+              showLockStatus={auth_level >= LOCK_AUTH_THRESHOLD}
               selectedKey={selectedKey}
               selectedRequest={selectedRequest}
               shouldLockRequest={shouldLockRequest}
