@@ -77,6 +77,7 @@ const RequestsTable = memo(
         <TableColumn allowsSorting key="status">
           Status
         </TableColumn>
+        <TableColumn key="lock">Lock</TableColumn>
         <TableColumn allowsSorting key="created_at">
           Created At
         </TableColumn>
@@ -115,6 +116,24 @@ const RequestsTable = memo(
           const renderDate = (iso: string) => {
             const formatted = formatDate(iso);
             return <span className="text-default-500">{formatted}</span>;
+          };
+
+          const renderLock = () => {
+            const lock = item.lock;
+            if (!lock) {
+              return <span className="text-default-500">—</span>;
+            }
+
+            const lockedAt = lock.locked_at ? formatDate(lock.locked_at) : "";
+            const label = lockedAt
+              ? `Locked by ${lock.character_name} @ ${lockedAt}`
+              : `Locked by ${lock.character_name}`;
+
+            return (
+              <Snippet hideSymbol radius="none" size="sm">
+                {label}
+              </Snippet>
+            );
           };
 
           const renderExpandButton = () => {
@@ -183,6 +202,7 @@ const RequestsTable = memo(
                 />
               </TableCell>
               <TableCell>{renderStatus()}</TableCell>
+              <TableCell>{renderLock()}</TableCell>
               <TableCell>{renderDate(item.created_at)}</TableCell>
               <TableCell>{renderDate(item.updated_at)}</TableCell>
               <TableCell>{item.updated_by || "N/A"}</TableCell>

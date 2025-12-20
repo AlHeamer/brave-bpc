@@ -16,6 +16,12 @@ export interface BlueprintLineItem {
   type_name: string;
 }
 
+export interface RequisitionLock {
+  locked_at: string;
+  character_id: number;
+  character_name: string;
+}
+
 export interface BlueprintRequest {
   id: number;
   character_id: number;
@@ -25,6 +31,7 @@ export interface BlueprintRequest {
   updated_at: string;
   updated_by?: string;
   public_notes?: string;
+  lock?: RequisitionLock | null;
   blueprints: BlueprintLineItem[];
 }
 
