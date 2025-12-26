@@ -35,11 +35,11 @@ func (app *app) createApiHandlers(mux *http.ServeMux, mw *mwChain) {
 }
 
 type GetBlueprintsBlueprint struct {
-	MaterialEfficiency int32 `json:"material_efficiency,omitempty"`
-	Quantity           int32 `json:"quantity,omitempty"`
-	Runs               int32 `json:"runs,omitempty"`
-	TimeEfficiency     int32 `json:"time_efficiency,omitempty"`
-	TypeId             int32 `json:"type_id,omitempty"`
+	MaterialEfficiency int64 `json:"material_efficiency,omitempty"`
+	Quantity           int64 `json:"quantity,omitempty"`
+	Runs               int64 `json:"runs,omitempty"`
+	TimeEfficiency     int64 `json:"time_efficiency,omitempty"`
+	TypeId             int64 `json:"type_id,omitempty"`
 }
 
 type GetBlueprintsType struct {
@@ -369,7 +369,7 @@ func (app *app) listRequisitionOrders(w http.ResponseWriter, r *http.Request) {
 
 	if user.Level >= authLevel_Worker {
 		parsedChar, _ := strconv.ParseInt(r.URL.Query().Get("character_id"), 10, 64)
-		characterId = int32(parsedChar)
+		characterId = parsedChar
 	}
 
 	orders, err := app.dao.listRequisitionOrders(characterId, status)

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/AlHeamer/brave-bpc/glue"
-	"github.com/antihax/goesi"
+	"github.com/AlHeamer/openesi/esi"
 	"github.com/gorilla/sessions"
 	"go.uber.org/zap"
 	"golang.org/x/oauth2"
@@ -34,7 +34,7 @@ type (
 
 type user struct {
 	UserId        int64  `json:"-"`
-	CharacterId   int32  `json:"character_id"`
+	CharacterId   int64  `json:"character_id"`
 	Level         int    `json:"auth_level"`
 	CharacterName string `json:"character_name"`
 }
@@ -59,10 +59,10 @@ const (
 	authTypeAddScopes    authType = "scope" // add scopes to character
 )
 
-func (app *app) doLogin(w http.ResponseWriter, r *http.Request, esiScopes []string, authType authType) {
+func (app *app) doLogin(w http.ResponseWriter, r *http.Request, authType authType, esiScopes ...glue.EsiScope) {
 	logger := getLoggerFromContext(r.Context()).With(
 		zap.String("auth_type", string(authType)),
-		zap.Strings("scopes", esiScopes))
+		zap.Any("scopes", esiScopes))
 
 	s, _ := app.sessionStore.Get(r, cookieSession)
 
@@ -86,14 +86,12 @@ func (app *app) doLogin(w http.ResponseWriter, r *http.Request, esiScopes []stri
 		return
 	}
 
-	ssoAuth := goesi.NewSSOAuthenticatorV2(
-		&http.Client{Timeout: 10 * time.Second},
-		app.runtimeConfig.appId,
-		app.runtimeConfig.appSecret,
-		app.runtimeConfig.appRedirect,
-		esiScopes)
+	stringScopes := make([]string, len(esiScopes))
+	for i, scope := range esiScopes {
+		stringScopes[i] = string(scope)
+	}
 
-	url := ssoAuth.AuthorizeURL(state, true, esiScopes)
+	url := app.esi.AuthorizeUrl(state, true, stringScopes)
 	http.Redirect(w, r, url, http.StatusFound)
 }
 
@@ -108,16 +106,9 @@ func (app *app) createTokens(tsps []scopeRefreshPair) []scopeSourcePair {
 		esiScopes = append(esiScopes, tsp.scope)
 	}
 
-	ssoAuth := goesi.NewSSOAuthenticatorV2(
-		&http.Client{Timeout: 10 * time.Second},
-		app.runtimeConfig.appId,
-		app.runtimeConfig.appSecret,
-		app.runtimeConfig.appRedirect,
-		esiScopes)
-
 	var tokens []scopeSourcePair
 	for _, tsp := range tsps {
-		tok := ssoAuth.TokenSource(&oauth2.Token{
+		tok := app.esi.TokenSource(&oauth2.Token{
 			RefreshToken: tsp.token,
 		})
 		tokens = append(tokens, scopeSourcePair{
@@ -145,17 +136,10 @@ func (app *app) callback(logger *zap.Logger, w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	esiScopes := s.Values[sessionLoginScopes{}].([]string)
+	esiScopes := s.Values[sessionLoginScopes{}].([]glue.EsiScope)
 	delete(s.Values, sessionLoginScopes{})
 
-	ssoAuth := goesi.NewSSOAuthenticatorV2(
-		&http.Client{Timeout: 10 * time.Second},
-		app.runtimeConfig.appId,
-		app.runtimeConfig.appSecret,
-		app.runtimeConfig.appRedirect,
-		esiScopes)
-
-	token, err := ssoAuth.TokenExchange(code)
+	token, err := app.esi.TokenExchange(code)
 	if err != nil {
 		http.Error(w, "token exchange error: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -164,7 +148,7 @@ func (app *app) callback(logger *zap.Logger, w http.ResponseWriter, r *http.Requ
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 
-	claims, err := app.jwks.VerifyTokenClaims(ctx, []byte(token.AccessToken))
+	claims, err := app.esi.VerifyTokenClaims(ctx, []byte(token.AccessToken))
 	if err != nil {
 		logger.Error("error verifying token claims", zap.Error(err))
 		http.Error(w, "error verifying claims", http.StatusInternalServerError)
@@ -172,16 +156,16 @@ func (app *app) callback(logger *zap.Logger, w http.ResponseWriter, r *http.Requ
 	}
 
 	logger = logger.With(
-		zap.Int32("character_id", claims.CharacterId),
+		zap.Int64("character_id", claims.CharacterId),
 		zap.Strings("scopes", claims.Scopes),
 		zap.String("character_name", claims.Name),
 		zap.String("owner_hash", claims.OwnerHash))
 	logger.Info("verified user")
 
 	// esi get character corp and alliance
-	tokSrc := ssoAuth.TokenSource(token)
-	esiCtx := context.WithValue(context.Background(), goesi.ContextOAuth2, tokSrc)
-	affiliation, resp, err := app.esi.ESI.CharacterApi.PostCharactersAffiliation(esiCtx, []int32{claims.CharacterId}, nil)
+	tokSrc := app.esi.TokenSource(token)
+	esiCtx := context.WithValue(context.Background(), esi.ContextOAuth2, tokSrc)
+	affiliation, resp, err := app.esi.ESI.CharacterAPI.PostCharactersAffiliation(esiCtx).XCompatibilityDate(esiCompatDate).RequestBody([]int64{claims.CharacterId}).Execute()
 	if err != nil || resp.StatusCode != http.StatusOK || len(affiliation) != 1 {
 		logger.Error("error getting character affiliations", zap.Int("affiliation_length", len(affiliation)), zap.String("status", resp.Status), zap.Error(err))
 		http.Error(w, "error getting character affiliations", http.StatusInternalServerError)
@@ -190,7 +174,7 @@ func (app *app) callback(logger *zap.Logger, w http.ResponseWriter, r *http.Requ
 
 	charData := affiliation[0]
 	if len(app.config.AllianceWhitelist) > 0 || len(app.config.CorporationWhitelist) > 0 {
-		if !slices.Contains(app.config.AllianceWhitelist, charData.AllianceId) {
+		if !slices.Contains(app.config.AllianceWhitelist, charData.GetAllianceId()) {
 			if !slices.Contains(app.config.CorporationWhitelist, charData.CorporationId) {
 				logger.Warn("character not in corp or alliance whitelist")
 				http.Error(w, "access denied", http.StatusForbidden)
@@ -285,7 +269,7 @@ func (app *app) createAuthHandlers(mux *http.ServeMux, mw *mwChain) {
 func (app *app) login(w http.ResponseWriter, r *http.Request) {
 	logger := getLoggerFromContext(r.Context())
 	logger.Debug("login")
-	app.doLogin(w, r, nil, authTypeLogin)
+	app.doLogin(w, r, authTypeLogin)
 }
 
 func (app *app) logout(w http.ResponseWriter, r *http.Request) {
@@ -334,7 +318,7 @@ func (app *app) addCharToAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// add character to account
-	app.doLogin(w, r, nil, authTypeAddCharacter)
+	app.doLogin(w, r, authTypeAddCharacter)
 }
 
 // director login
@@ -349,11 +333,11 @@ func (app *app) addScopeToAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// create rows with refresh token
-	app.doLogin(w, r, []string{
-		string(glue.EsiScope_AssetsReadCorporationAssets_v1),
-		string(glue.EsiScope_CorporationsReadBlueprints_v1),
-		string(glue.EsiScope_CorporationsReadDivisions_v1),
-		string(glue.EsiScope_IndustryReadCorporationJobs_v1),
-		string(glue.EsiScope_UniverseReadStructures_v1),
-	}, authTypeAddScopes)
+	app.doLogin(w, r, authTypeAddScopes,
+		glue.EsiScope_AssetsReadCorporationAssets_v1,
+		glue.EsiScope_CorporationsReadBlueprints_v1,
+		glue.EsiScope_CorporationsReadDivisions_v1,
+		glue.EsiScope_IndustryReadCorporationJobs_v1,
+		glue.EsiScope_UniverseReadStructures_v1,
+	)
 }

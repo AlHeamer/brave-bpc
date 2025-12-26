@@ -1,46 +1,44 @@
 package glue
 
-import (
-	"github.com/antihax/goesi/esi"
-)
+import "github.com/AlHeamer/openesi/esi"
 
 type InventoryItem struct {
 	ItemId             int64  `json:"item_id,omitempty"`             /* Unique ID for this item. */
-	TypeId             int32  `json:"type_id,omitempty"`             /* type_id integer */
+	TypeId             int64  `json:"type_id,omitempty"`             /* type_id integer */
 	LocationId         int64  `json:"location_id,omitempty"`         /* References a station, a ship or an item_id if this blueprint is located within a container. */
 	LocationFlag       string `json:"location_flag,omitempty"`       /* Type of the location_id */
 	LocationType       string `json:"location_type,omitempty"`       /* location_type string */
-	Quantity           int32  `json:"quantity,omitempty"`            /* A range of numbers with a minimum of -2 and no maximum value where -1 is an original and -2 is a copy. It can be a positive integer if it is a stack of blueprint originals fresh from the market (e.g. no activities performed on them yet). */
-	Runs               int32  `json:"runs,omitempty"`                /* Number of runs remaining if the blueprint is a copy, -1 if it is an original. */
-	MaterialEfficiency int32  `json:"material_efficiency,omitempty"` /* Material Efficiency Level of the blueprint. */
-	TimeEfficiency     int32  `json:"time_efficiency,omitempty"`     /* Time Efficiency Level of the blueprint. */
+	Quantity           int64  `json:"quantity,omitempty"`            /* A range of numbers with a minimum of -2 and no maximum value where -1 is an original and -2 is a copy. It can be a positive integer if it is a stack of blueprint originals fresh from the market (e.g. no activities performed on them yet). */
+	Runs               int64  `json:"runs,omitempty"`                /* Number of runs remaining if the blueprint is a copy, -1 if it is an original. */
+	MaterialEfficiency int64  `json:"material_efficiency,omitempty"` /* Material Efficiency Level of the blueprint. */
+	TimeEfficiency     int64  `json:"time_efficiency,omitempty"`     /* Time Efficiency Level of the blueprint. */
 	IsBlueprintCopy    bool   `json:"is_blueprint_copy,omitempty"`   /* is_blueprint_copy boolean */
 	IsSingleton        bool   `json:"is_singleton,omitempty"`        /* is_singleton boolean */
 }
 
-func newInventoryItem(a *esi.GetCorporationsCorporationIdAssets200Ok, b *esi.GetCorporationsCorporationIdBlueprints200Ok) InventoryItem {
+func newInventoryItem(a *esi.CorporationsCorporationIdAssetsGetInner, b *esi.CorporationsCorporationIdBlueprintsGetInner) InventoryItem {
 	var out InventoryItem
 	if a != nil {
-		out.ItemId = a.ItemId
-		out.TypeId = a.TypeId
-		out.LocationId = a.LocationId
-		out.LocationFlag = a.LocationFlag
-		out.LocationType = a.LocationType
-		out.Quantity = a.Quantity
-		out.IsBlueprintCopy = a.IsBlueprintCopy
-		out.IsSingleton = a.IsSingleton
+		out.ItemId = a.GetItemId()
+		out.TypeId = a.GetTypeId()
+		out.LocationId = a.GetLocationId()
+		out.LocationFlag = a.GetLocationFlag()
+		out.LocationType = a.GetLocationType()
+		out.Quantity = a.GetQuantity()
+		out.IsBlueprintCopy = a.GetIsBlueprintCopy()
+		out.IsSingleton = a.GetIsSingleton()
 	}
 
 	if b != nil {
-		out.ItemId = b.ItemId
-		out.TypeId = b.TypeId
-		out.LocationId = b.LocationId
-		out.LocationFlag = b.LocationFlag
-		out.Quantity = b.Quantity
-		out.Runs = b.Runs
-		out.MaterialEfficiency = b.MaterialEfficiency
-		out.TimeEfficiency = b.TimeEfficiency
-		out.IsBlueprintCopy = b.Quantity != -2
+		out.ItemId = b.GetItemId()
+		out.TypeId = b.GetTypeId()
+		out.LocationId = b.GetLocationId()
+		out.LocationFlag = b.GetLocationFlag()
+		out.Quantity = b.GetQuantity()
+		out.Runs = b.GetRuns()
+		out.MaterialEfficiency = b.GetMaterialEfficiency()
+		out.TimeEfficiency = b.GetTimeEfficiency()
+		out.IsBlueprintCopy = b.GetQuantity() != -2
 	}
 
 	return out

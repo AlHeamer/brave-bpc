@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/AlHeamer/brave-bpc/glue"
 	"github.com/AlHeamer/brave-bpc/sqlparams"
 	"github.com/gorilla/sessions"
 	"github.com/pressly/goose/v3"
@@ -74,8 +75,8 @@ SET config=?
 	return nil
 }
 
-func (d *dao) getTokenForCharacter(logger *zap.Logger, characterId int32, roles []string) []scopeRefreshPair {
-	logger = logger.With(zap.Int32("character_id", characterId), zap.Strings("requested_roles", roles))
+func (d *dao) getTokenForCharacter(logger *zap.Logger, characterId int64, roles []string) []scopeRefreshPair {
+	logger = logger.With(zap.Int64("character_id", characterId), zap.Strings("requested_roles", roles))
 
 	params := sqlparams.New()
 	rows, err := d.db.Query(`
@@ -125,8 +126,8 @@ AND s.scope IN(`+params.AddParams(roles)+`)
 }
 
 // userid, found, created
-func (d *dao) getUserForCharacter(logger *zap.Logger, characterId int32, ownerHash string) int64 {
-	logger = logger.With(zap.Int32("character_id", characterId), zap.String("owner_hash", ownerHash))
+func (d *dao) getUserForCharacter(logger *zap.Logger, characterId int64, ownerHash string) int64 {
+	logger = logger.With(zap.Int64("character_id", characterId), zap.String("owner_hash", ownerHash))
 
 	var userId int64
 	err := d.db.QueryRow(`
@@ -144,7 +145,7 @@ owner_hash = ?
 	return userId
 }
 
-func (d *dao) createUserWithCharacter(logger *zap.Logger, characterId int32, ownerHash string) (int64, int64, error) {
+func (d *dao) createUserWithCharacter(logger *zap.Logger, characterId int64, ownerHash string) (int64, int64, error) {
 	row, err := d.db.Exec(`
 INSERT INTO user
 (primary_toon_hash, date_created, date_modified)
@@ -168,12 +169,12 @@ VALUES(?, NOW(), NOW())
 }
 
 // returns toon, found, created
-func (d *dao) findOrCreateToon(logger *zap.Logger, userId int64, characterId int32, ownerHash string) (int64, bool, bool) {
+func (d *dao) findOrCreateToon(logger *zap.Logger, userId int64, characterId int64, ownerHash string) (int64, bool, bool) {
 	if userId <= 0 {
 		return 0, false, false
 	}
 
-	logger = logger.With(zap.Int64("user_id", userId), zap.Int32("character_id", characterId), zap.String("owner_hash", ownerHash))
+	logger = logger.With(zap.Int64("user_id", userId), zap.Int64("character_id", characterId), zap.String("owner_hash", ownerHash))
 	var toonId int64
 	err := d.db.QueryRow(`
 SELECT id
@@ -208,7 +209,7 @@ VALUES(?,?,?)
 	return toonId, false, true
 }
 
-func (d *dao) addScopes(logger *zap.Logger, userId int64, toonId int64, scopes []string, token *oauth2.Token, session *sessions.Session) error {
+func (d *dao) addScopes(logger *zap.Logger, userId int64, toonId int64, scopes []glue.EsiScope, token *oauth2.Token, session *sessions.Session) error {
 	if len(scopes) == 0 {
 		// no need to store a token if there's no scopes
 		return nil
@@ -305,9 +306,9 @@ ON DUPLICATE KEY UPDATE token_id=`+params.AddParam(tokenId), params...)
 
 	sessionScopes, found := session.Values[sessionLoginScopes{}]
 	if !found {
-		sessionScopes = make([]string, len(scopes))
+		sessionScopes = make([]glue.EsiScope, len(scopes))
 	}
-	sessionScopes = append(sessionScopes.([]string), scopes...)
+	sessionScopes = append(sessionScopes.([]glue.EsiScope), scopes...)
 	session.Values[sessionLoginScopes{}] = sessionScopes
 
 	return nil
@@ -333,7 +334,7 @@ func (d *dao) runMigrations(logger *zap.Logger, migrateDown bool) {
 	}
 }
 
-func (dao *dao) createRequisition(characterId int32, characterName string, blueprints []requestedBlueprint) error {
+func (dao *dao) createRequisition(characterId int64, characterName string, blueprints []requestedBlueprint) error {
 	bytes, err := json.Marshal(blueprints)
 	if err != nil {
 		return fmt.Errorf("error marshalling json: %w", err)
@@ -348,7 +349,7 @@ VALUES (?,?,?,?)
 	return err
 }
 
-func (dao *dao) listRequisitionOrders(characterId int32, status requisitionStatus) ([]requisitionOrder, error) {
+func (dao *dao) listRequisitionOrders(characterId int64, status requisitionStatus) ([]requisitionOrder, error) {
 	params := sqlparams.New()
 	// Status param moved to before character ID due to ordering in query
 	filter := "1=1"

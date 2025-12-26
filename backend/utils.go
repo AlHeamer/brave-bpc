@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/AlHeamer/brave-bpc/glue"
-	"github.com/antihax/goesi/esi"
+	"github.com/AlHeamer/openesi/esi"
 	"github.com/bwmarrin/snowflake"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
@@ -216,7 +216,7 @@ func (app *app) getAdminToken(logger *zap.Logger) scopeSourcePair {
 	return toks[0]
 }
 
-func sameBlueprintQuality(a esi.GetCorporationsCorporationIdBlueprints200Ok, b esi.GetCorporationsCorporationIdBlueprints200Ok) bool {
+func sameBlueprintQuality(a esi.CorporationsCorporationIdBlueprintsGetInner, b esi.CorporationsCorporationIdBlueprintsGetInner) bool {
 	return a.TypeId == b.TypeId &&
 		a.MaterialEfficiency == b.MaterialEfficiency &&
 		a.TimeEfficiency == b.TimeEfficiency &&
@@ -225,7 +225,7 @@ func sameBlueprintQuality(a esi.GetCorporationsCorporationIdBlueprints200Ok, b e
 
 func parseEsiError(err error) string {
 	s := map[string]string{}
-	if e, ok := err.(esi.GenericSwaggerError); ok {
+	if e, ok := err.(esi.GenericOpenAPIError); ok {
 		json.Unmarshal(e.Body(), &s)
 	}
 	return s["error"]

@@ -18,7 +18,7 @@ type postRequisitionOrderRequest struct {
 
 type requisitionOrder struct {
 	Id            int64                `json:"id,omitempty"`
-	CharacterId   int32                `json:"character_id,omitempty"`
+	CharacterId   int64                `json:"character_id,omitempty"`
 	Status        requisitionStatus    `json:"status,omitempty"`
 	CreatedAt     time.Time            `json:"created_at,omitzero"`
 	UpdatedAt     time.Time            `json:"updated_at,omitzero"`

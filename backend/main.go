@@ -11,28 +11,28 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/antihax/goesi"
-	"github.com/antihax/goesi/esi"
+	"github.com/AlHeamer/brave-bpc/glue"
+	"github.com/AlHeamer/openesi"
+	"github.com/AlHeamer/openesi/esi"
 	"github.com/bwmarrin/snowflake"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
-	"github.com/lestrrat-go/jwx/v3/jwk"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )
 
 const (
-	esiUserAgent = "brave-bpc/0.0.0 (eve:Al Heamer)"
-
+	esiUserAgent      = "brave-bpc/0.0.0 (eve:Al Heamer)"
+	esiCompatDate     = "2025-08-26"
 	headerPages       = "X-Pages"
 	esiRequestTimeout = 20 * time.Second
 )
 
 type appConfig struct {
-	AllianceWhitelist    []int32 `json:"alliances,omitempty"`     // Alliances allowed to log into this service
-	CorporationWhitelist []int32 `json:"corporations,omitempty"`  // Corporations allowed to log into this service
-	AdminCorp            int32   `json:"admin_corp,omitempty"`    // Corporation that provides the service
-	AdminCharacter       int32   `json:"admin_char,omitempty"`    // The character used to poll corporate data
+	AllianceWhitelist    []int64 `json:"alliances,omitempty"`     // Alliances allowed to log into this service
+	CorporationWhitelist []int64 `json:"corporations,omitempty"`  // Corporations allowed to log into this service
+	AdminCorp            int64   `json:"admin_corp,omitempty"`    // Corporation that provides the service
+	AdminCharacter       int64   `json:"admin_char,omitempty"`    // The character used to poll corporate data
 	MaxContracts         int32   `json:"max_contracts,omitempty"` // Maximum number of contracts an account can open
 }
 
@@ -48,7 +48,7 @@ type runtimeConfig struct {
 
 type requisitionLock struct {
 	LockedAt      time.Time `json:"locked_at"`
-	CharacterId   int32     `json:"character_id"`
+	CharacterId   int64     `json:"character_id"`
 	CharacterName string    `json:"character_name"`
 }
 
@@ -58,13 +58,12 @@ type app struct {
 	logger         *zap.Logger
 	dao            *dao
 	sessionStore   sessions.Store
-	esi            *goesi.APIClient
+	esi            *openesi.Client
 	invStateLock   sync.RWMutex
 	inventoryState *inventoryState
 
 	requisitionLocks      *syncMap[int64, requisitionLock]
 	flake                 *snowflake.Node
-	jwks                  *EsiJwks
 	adminTokenRefreshChan chan struct{}
 }
 
@@ -81,14 +80,13 @@ func main() {
 	app := &app{
 		logger:       logger,
 		sessionStore: newSessionStore(),
-		esi:          goesi.NewAPIClient(&http.Client{Timeout: 10 * time.Second}, esiUserAgent),
 		flake:        newSnowflake(logger),
 		invStateLock: sync.RWMutex{},
 		inventoryState: &inventoryState{
-			bpcs:           map[int32][]esi.GetCorporationsCorporationIdBlueprints200Ok{},
-			bpos:           map[int32][]esi.GetCorporationsCorporationIdBlueprints200Ok{},
+			bpcs:           map[int64][]esi.CorporationsCorporationIdBlueprintsGetInner{},
+			bpos:           map[int64][]esi.CorporationsCorporationIdBlueprintsGetInner{},
 			containerNames: map[int64]string{},
-			typeNames:      map[int32]string{},
+			typeNames:      map[int64]string{},
 			tree:           map[int64]*CorpAsset{},
 		},
 		requisitionLocks:      newSyncMap[int64, requisitionLock](),
@@ -96,14 +94,16 @@ func main() {
 		adminTokenRefreshChan: make(chan struct{}, 1),
 	}
 
-	threadCtx, cancelThreads := context.WithCancel(context.Background())
-	app.jwks, err = NewEsiJwks(threadCtx,
+	app.esi, err = openesi.NewClient(
+		context.Background(),
 		app.runtimeConfig.appId,
-		app.runtimeConfig.jwtSkew,
-		jwk.WithMinInterval(time.Hour),
-		jwk.WithMaxInterval(time.Hour*24*7))
+		app.runtimeConfig.appSecret,
+		app.runtimeConfig.appRedirect,
+		esiUserAgent,
+		&http.Client{Timeout: 10 * time.Second},
+		time.Second)
 	if err != nil {
-		logger.Fatal("error creating jwks cache", zap.Error(err))
+		logger.Fatal("error creating openesi client", zap.Error(err))
 	}
 
 	app.dao = newDao(logger)
@@ -121,6 +121,7 @@ func main() {
 	gob.Register(sessionLoginSrc{})
 	gob.Register(sessionLoginState{})
 	gob.Register(sessionUserData{})
+	gob.Register([]glue.EsiScope{})
 
 	mux := http.NewServeMux()
 	baseChain := NewMwChain(app.requestMiddleware)
@@ -132,8 +133,6 @@ func main() {
 	app.createAuthHandlers(mux, baseChain)
 	app.createApiHandlers(mux, baseChain)
 
-	go app.ticker(threadCtx)
-
 	server := &http.Server{
 		Addr:         ":" + app.runtimeConfig.httpPort,
 		Handler:      mux,
@@ -141,6 +140,9 @@ func main() {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
+
+	threadCtx, cancelThreads := context.WithCancel(context.Background())
+	go app.ticker(threadCtx)
 
 	go func() {
 		logger.Info("http service listening",
