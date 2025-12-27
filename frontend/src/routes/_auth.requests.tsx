@@ -267,6 +267,8 @@ function RouteComponent() {
         if (!response.ok) {
           throw new Error(`Failed to release lock (${response.status})`);
         }
+
+        await refetch().catch(() => undefined);
       } catch (err) {
         addToast({
           title: "Lock Error",
@@ -278,7 +280,7 @@ function RouteComponent() {
         throw err;
       }
     },
-    [requiresLocking]
+    [requiresLocking, refetch]
   );
 
   const toggleExpand = useCallback(
@@ -286,8 +288,13 @@ function RouteComponent() {
       if (selectingRef.current) return;
       selectingRef.current = true;
 
+      const previousSelectedKey = selectedKey;
       const request = requestById.get(key);
       const lockable = shouldLockRequest(request);
+      const lockOwnerName = request?.lock?.character_name;
+      const hasLock = lockOwnerName != null && lockOwnerName.length > 0;
+      const isLockedByOther = hasLock && lockOwnerName !== user.character_name;
+      const isLockedBySelf = hasLock && lockOwnerName === user.character_name;
       const currentRequest =
         selectedKey === null ? null : (requestById.get(selectedKey) ?? null);
       const currentLockable = shouldLockRequest(currentRequest);
@@ -305,15 +312,35 @@ function RouteComponent() {
           return;
         }
 
+        if (lockable && isLockedByOther) {
+          return;
+        }
+
         if (lockable) {
-          await acquireLock(key).catch(() => undefined);
+          if (!isLockedBySelf) {
+            setSelectedKey(key);
+            try {
+              await acquireLock(key);
+            } catch {
+              setSelectedKey(previousSelectedKey);
+              return;
+            }
+            return;
+          }
         }
         setSelectedKey(key);
       } finally {
         selectingRef.current = false;
       }
     },
-    [selectedKey, requestById, shouldLockRequest, acquireLock, releaseLock]
+    [
+      selectedKey,
+      requestById,
+      shouldLockRequest,
+      acquireLock,
+      releaseLock,
+      user.character_name,
+    ]
   );
 
   const selectedRequest = useMemo(() => {
@@ -460,6 +487,7 @@ function RouteComponent() {
             </label>
             <Select
               id="status-filter"
+              aria-label="Status"
               className="w-40"
               disallowEmptySelection
               selectedKeys={statusSelectedKeys}
@@ -484,6 +512,7 @@ function RouteComponent() {
             </label>
             <Input
               id="character-filter"
+              aria-label="Character"
               autoComplete="off"
               className="w-64"
               onChange={(event: ChangeEvent<HTMLInputElement>) =>
@@ -505,6 +534,7 @@ function RouteComponent() {
               isLoading={isLoading}
               items={sortedItems}
               showLockStatus={auth_level >= LOCK_AUTH_THRESHOLD}
+              currentCharacterName={user.character_name}
               selectedKey={selectedKey}
               selectedRequest={selectedRequest}
               shouldLockRequest={shouldLockRequest}

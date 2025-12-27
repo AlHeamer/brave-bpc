@@ -10,6 +10,7 @@ import {
   Spinner,
   User,
   Snippet,
+  Tooltip,
 } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@react-types/shared";
 import { memo } from "react";
@@ -27,6 +28,7 @@ export interface RequestsTableProps {
   error?: unknown;
   isLoading: boolean;
   showLockStatus: boolean;
+  currentCharacterName: string;
   selectedKeys: Selection;
   sortDescriptor: SortDescriptor;
   selectedKey: number | null;
@@ -46,6 +48,7 @@ const RequestsTable = memo(
     error,
     isLoading,
     showLockStatus,
+    currentCharacterName,
     selectedKeys,
     sortDescriptor,
     selectedKey,
@@ -78,9 +81,6 @@ const RequestsTable = memo(
         <TableColumn key="requester">Requester</TableColumn>
         <TableColumn allowsSorting key="status">
           Status
-        </TableColumn>
-        <TableColumn key="lock" className={showLockStatus ? undefined : "hidden"}>
-          Lock
         </TableColumn>
         <TableColumn allowsSorting key="created_at">
           Created At
@@ -122,29 +122,45 @@ const RequestsTable = memo(
             return <span className="text-default-500">{formatted}</span>;
           };
 
-          const renderLock = () => {
-            const lock = item.lock;
-            if (!lock) {
-              return <span className="text-default-500">—</span>;
-            }
-
-            const lockedAt = lock.locked_at ? formatDate(lock.locked_at) : "";
-            const label = lockedAt
-              ? `Locked by ${lock.character_name} @ ${lockedAt}`
-              : `Locked by ${lock.character_name}`;
-
-            return (
-              <Snippet hideSymbol radius="none" size="sm">
-                {label}
-              </Snippet>
-            );
-          };
-
           const renderExpandButton = () => {
             const { id } = item;
             const isSelected = selectedKey === id;
             const requestNeedsLock = shouldLockRequest(item);
             const selectedNeedsLock = shouldLockRequest(selectedRequest);
+
+            if (item.lock) {
+              const isLockOwner =
+                item.lock.character_name === currentCharacterName;
+
+              const lockedAt = item.lock.locked_at
+                ? formatDate(item.lock.locked_at)
+                : null;
+              const tooltipText = showLockStatus
+                ? lockedAt
+                  ? `Locked by ${item.lock.character_name} @ ${lockedAt}`
+                  : `Locked by ${item.lock.character_name}`
+                : "Locked";
+
+              const disabled = !isLockOwner || isSelected || selectedNeedsLock;
+              const button = (
+                <Button
+                  disabled={disabled}
+                  onPress={() => onView(id)}
+                  size="sm"
+                  variant="flat"
+                >
+                  {isSelected ? "Viewing" : "Locked"}
+                </Button>
+              );
+
+              return showLockStatus ? (
+                <Tooltip content={tooltipText} placement="top">
+                  <span>{button}</span>
+                </Tooltip>
+              ) : (
+                button
+              );
+            }
 
             if (!requestNeedsLock) {
               const disabled = isSelected || selectedNeedsLock;
@@ -206,9 +222,6 @@ const RequestsTable = memo(
                 />
               </TableCell>
               <TableCell>{renderStatus()}</TableCell>
-              <TableCell className={showLockStatus ? undefined : "hidden"}>
-                {renderLock()}
-              </TableCell>
               <TableCell>{renderDate(item.created_at)}</TableCell>
               <TableCell>{renderDate(item.updated_at)}</TableCell>
               <TableCell>{item.updated_by || "N/A"}</TableCell>
