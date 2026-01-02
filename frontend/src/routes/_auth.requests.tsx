@@ -40,7 +40,7 @@ type StatusMetadataEntry = {
   color: ChipColor;
 };
 
-const statusMetadata: Record<number, StatusMetadataEntry> = {
+const statusDisplayMetadata: Record<number, StatusMetadataEntry> = {
   0: { value: 0, slug: "unknown", name: "Unknown", color: "warning" },
   1: { value: 1, slug: "open", name: "Open", color: "primary" },
   2: { value: 2, slug: "canceled", name: "Canceled", color: "default" },
@@ -51,14 +51,16 @@ const statusMetadata: Record<number, StatusMetadataEntry> = {
 const OPEN_STATUS_VALUE = 1;
 
 const statusMetadataBySlug: Record<string, StatusMetadataEntry> = {};
-for (const entry of Object.values(statusMetadata)) {
+for (const entry of Object.values(statusDisplayMetadata)) {
   statusMetadataBySlug[entry.slug] = entry;
 }
 
-const statusFilterOptions = Object.values(statusMetadata).map((entry) => ({
-  value: entry.value,
-  label: entry.name,
-}));
+const statusFilterOptions = [
+  { value: 0, label: "All" },
+  ...Object.values(statusDisplayMetadata)
+    .filter((entry) => entry.value !== 0)
+    .map((entry) => ({ value: entry.value, label: entry.name })),
+];
 
 type RequisitionSortKey =
   | "id"
@@ -82,16 +84,18 @@ const LOCK_AUTH_THRESHOLD = 2;
 
 function resolveStatusMetadata(status?: string | number): StatusMetadataEntry {
   if (status == null) {
-    return statusMetadata[OPEN_STATUS_VALUE];
+    return statusDisplayMetadata[OPEN_STATUS_VALUE];
   }
 
   if (typeof status === "number" && Number.isInteger(status)) {
-    return statusMetadata[status] ?? statusMetadata[OPEN_STATUS_VALUE];
+    return (
+      statusDisplayMetadata[status] ?? statusDisplayMetadata[OPEN_STATUS_VALUE]
+    );
   }
 
   const numericStatus = Number(status);
   if (Number.isInteger(numericStatus)) {
-    const byNumber = statusMetadata[numericStatus];
+    const byNumber = statusDisplayMetadata[numericStatus];
     if (byNumber) {
       return byNumber;
     }
@@ -104,7 +108,7 @@ function resolveStatusMetadata(status?: string | number): StatusMetadataEntry {
     }
   }
 
-  return statusMetadata[OPEN_STATUS_VALUE];
+  return statusDisplayMetadata[OPEN_STATUS_VALUE];
 }
 
 function isOpenStatus(status?: string | number): boolean {
@@ -263,6 +267,8 @@ function RouteComponent() {
         if (!response.ok) {
           throw new Error(`Failed to release lock (${response.status})`);
         }
+
+        await refetch().catch(() => undefined);
       } catch (err) {
         addToast({
           title: "Lock Error",
@@ -274,7 +280,7 @@ function RouteComponent() {
         throw err;
       }
     },
-    [requiresLocking]
+    [requiresLocking, refetch]
   );
 
   const toggleExpand = useCallback(
@@ -282,8 +288,13 @@ function RouteComponent() {
       if (selectingRef.current) return;
       selectingRef.current = true;
 
+      const previousSelectedKey = selectedKey;
       const request = requestById.get(key);
       const lockable = shouldLockRequest(request);
+      const lockOwnerName = request?.lock?.character_name;
+      const hasLock = lockOwnerName != null && lockOwnerName.length > 0;
+      const isLockedByOther = hasLock && lockOwnerName !== user.character_name;
+      const isLockedBySelf = hasLock && lockOwnerName === user.character_name;
       const currentRequest =
         selectedKey === null ? null : (requestById.get(selectedKey) ?? null);
       const currentLockable = shouldLockRequest(currentRequest);
@@ -301,15 +312,35 @@ function RouteComponent() {
           return;
         }
 
+        if (lockable && isLockedByOther) {
+          return;
+        }
+
         if (lockable) {
-          await acquireLock(key).catch(() => undefined);
+          if (!isLockedBySelf) {
+            setSelectedKey(key);
+            try {
+              await acquireLock(key);
+            } catch {
+              setSelectedKey(previousSelectedKey);
+              return;
+            }
+            return;
+          }
         }
         setSelectedKey(key);
       } finally {
         selectingRef.current = false;
       }
     },
-    [selectedKey, requestById, shouldLockRequest, acquireLock, releaseLock]
+    [
+      selectedKey,
+      requestById,
+      shouldLockRequest,
+      acquireLock,
+      releaseLock,
+      user.character_name,
+    ]
   );
 
   const selectedRequest = useMemo(() => {
@@ -456,6 +487,7 @@ function RouteComponent() {
             </label>
             <Select
               id="status-filter"
+              aria-label="Status"
               className="w-40"
               disallowEmptySelection
               selectedKeys={statusSelectedKeys}
@@ -480,6 +512,7 @@ function RouteComponent() {
             </label>
             <Input
               id="character-filter"
+              aria-label="Character"
               autoComplete="off"
               className="w-64"
               onChange={(event: ChangeEvent<HTMLInputElement>) =>
@@ -500,6 +533,8 @@ function RouteComponent() {
               error={error}
               isLoading={isLoading}
               items={sortedItems}
+              showLockStatus={auth_level >= LOCK_AUTH_THRESHOLD}
+              currentCharacterName={user.character_name}
               selectedKey={selectedKey}
               selectedRequest={selectedRequest}
               shouldLockRequest={shouldLockRequest}

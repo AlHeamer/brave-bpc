@@ -219,6 +219,7 @@ function RouteComponent() {
     <div className="flex items-start gap-6">
       <div className="flex w-[1000px] flex-col gap-4">
         <Input
+          aria-label="Search items"
           placeholder="Search items..."
           value={search}
           onChange={(event: ChangeEvent<HTMLInputElement>) =>

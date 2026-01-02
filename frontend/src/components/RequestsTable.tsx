@@ -10,6 +10,7 @@ import {
   Spinner,
   User,
   Snippet,
+  Tooltip,
 } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@react-types/shared";
 import { memo } from "react";
@@ -26,6 +27,8 @@ export interface RequestsTableProps {
   items: BlueprintRequest[];
   error?: unknown;
   isLoading: boolean;
+  showLockStatus: boolean;
+  currentCharacterName: string;
   selectedKeys: Selection;
   sortDescriptor: SortDescriptor;
   selectedKey: number | null;
@@ -44,6 +47,8 @@ const RequestsTable = memo(
     items,
     error,
     isLoading,
+    showLockStatus,
+    currentCharacterName,
     selectedKeys,
     sortDescriptor,
     selectedKey,
@@ -122,6 +127,40 @@ const RequestsTable = memo(
             const isSelected = selectedKey === id;
             const requestNeedsLock = shouldLockRequest(item);
             const selectedNeedsLock = shouldLockRequest(selectedRequest);
+
+            if (item.lock) {
+              const isLockOwner =
+                item.lock.character_name === currentCharacterName;
+
+              const lockedAt = item.lock.locked_at
+                ? formatDate(item.lock.locked_at)
+                : null;
+              const tooltipText = showLockStatus
+                ? lockedAt
+                  ? `Locked by ${item.lock.character_name} @ ${lockedAt}`
+                  : `Locked by ${item.lock.character_name}`
+                : "Locked";
+
+              const disabled = !isLockOwner || isSelected || selectedNeedsLock;
+              const button = (
+                <Button
+                  disabled={disabled}
+                  onPress={() => onView(id)}
+                  size="sm"
+                  variant="flat"
+                >
+                  {isSelected ? "Viewing" : "Locked"}
+                </Button>
+              );
+
+              return showLockStatus ? (
+                <Tooltip content={tooltipText} placement="top">
+                  <span>{button}</span>
+                </Tooltip>
+              ) : (
+                button
+              );
+            }
 
             if (!requestNeedsLock) {
               const disabled = isSelected || selectedNeedsLock;
