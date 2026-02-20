@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_auth/list")({
 });
 
 const MAX_TOTAL = 10;
-type BlueprintWithName = Blueprint & { type_name: string };
+type SelectedBlueprint = { blueprint: Blueprint; type_name: string };
 
 function RouteComponent() {
   const { data: blueprintGroups = [], isLoading, error } = useBlueprintsQuery();
@@ -52,18 +52,20 @@ function RouteComponent() {
     return total;
   };
 
-  const flattenedBlueprints = useMemo<BlueprintWithName[]>(() => {
-    return blueprintGroups.flatMap((group) =>
-      group.blueprints.map((blueprint) => ({
-        ...blueprint,
-        type_name: group.type_name,
-      }))
-    );
-  }, [blueprintGroups]);
+  const selectedItems = useMemo<SelectedBlueprint[]>(() => {
+    if (blueprintGroups.length === 0) return [];
 
-  const selectedItems = useMemo(() => {
-    return flattenedBlueprints.filter((item) => selected[item.key]?.checked);
-  }, [flattenedBlueprints, selected]);
+    const out: SelectedBlueprint[] = [];
+    for (const group of blueprintGroups) {
+      const typeName = group.type_name;
+      for (const blueprint of group.blueprints) {
+        if (selected[blueprint.key]?.checked) {
+          out.push({ blueprint, type_name: typeName });
+        }
+      }
+    }
+    return out;
+  }, [blueprintGroups, selected]);
 
   const toggleExpand = (groupId: string) => {
     setExpandedGroups((prev) => {
@@ -114,7 +116,7 @@ function RouteComponent() {
     const parsedValue = typeof rawValue === "number" ? rawValue : 1;
     const clampedValue = Math.min(
       Math.max(Math.floor(parsedValue) || 1, 1),
-      item.quantity
+      item.quantity,
     );
 
     setSelected((prev) => {
@@ -147,7 +149,7 @@ function RouteComponent() {
     const normalizedSearch = search.trim().toLowerCase();
     const filtered = normalizedSearch.length
       ? blueprintGroups.filter((group) =>
-          group.type_name.toLowerCase().includes(normalizedSearch)
+          group.type_name.toLowerCase().includes(normalizedSearch),
         )
       : blueprintGroups;
 
@@ -181,11 +183,12 @@ function RouteComponent() {
       await createRequisition.mutateAsync({
         blueprints: selectedItems.map((item) => ({
           type_name: item.type_name,
-          type_id: item.type_id,
-          runs: item.runs,
-          material_efficiency: item.material_efficiency ?? 0,
-          time_efficiency: item.time_efficiency ?? 0,
-          quantity: selected[item.key]?.value ?? item.quantity,
+          type_id: item.blueprint.type_id,
+          runs: item.blueprint.runs,
+          material_efficiency: item.blueprint.material_efficiency ?? 0,
+          time_efficiency: item.blueprint.time_efficiency ?? 0,
+          quantity:
+            selected[item.blueprint.key]?.value ?? item.blueprint.quantity,
         })),
       });
       addToast({
@@ -206,11 +209,12 @@ function RouteComponent() {
 
   const selectedBlueprints = useMemo(() => {
     return selectedItems.map((item) => ({
-      type_id: item.type_id,
-      runs: item.runs,
-      material_efficiency: item.material_efficiency ?? 0,
-      time_efficiency: item.time_efficiency ?? 0,
-      quantity: selected[item.key]?.value ?? item.quantity ?? 1,
+      type_id: item.blueprint.type_id,
+      runs: item.blueprint.runs,
+      material_efficiency: item.blueprint.material_efficiency ?? 0,
+      time_efficiency: item.blueprint.time_efficiency ?? 0,
+      quantity:
+        selected[item.blueprint.key]?.value ?? item.blueprint.quantity ?? 1,
       type_name: item.type_name,
     }));
   }, [selected, selectedItems]);

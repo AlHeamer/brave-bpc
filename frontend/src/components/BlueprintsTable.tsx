@@ -8,6 +8,7 @@ import {
 } from "@heroui/react";
 import { memo } from "react";
 import type { BlueprintRequest } from "../api/requisitions";
+import LazyImage from "./LazyImage";
 
 type BlueprintLineItem = BlueprintRequest["blueprints"][number];
 
@@ -48,9 +49,11 @@ const BlueprintsTable = memo(
           >
             <TableCell>
               <div className="flex items-center gap-3">
-                <img
+                <LazyImage
                   alt={`${blueprint.type_name} icon`}
                   className="h-12 w-12 flex-shrink-0 rounded-none object-contain"
+                  height={48}
+                  width={48}
                   src={`https://images.evetech.net/types/${blueprint.type_id}/bpc?size=64`}
                 />
                 <span className="min-w-0 break-words text-sm font-medium text-default-900">
@@ -66,7 +69,7 @@ const BlueprintsTable = memo(
         ))}
       </TableBody>
     </Table>
-  )
+  ),
 );
 
 BlueprintsTable.displayName = "BlueprintsTable";

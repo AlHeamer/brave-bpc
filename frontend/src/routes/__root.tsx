@@ -1,13 +1,19 @@
 import { Link } from "@heroui/react";
 import { Outlet, createRootRouteWithContext } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import type { AuthContextValue } from "../contexts/AuthContext";
 import { NavBar } from "../components/NavBar";
-import { useTheme } from "../contexts/ThemeContext";
 import type { NavigateOptions, ToOptions } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 interface MyRouterContext {
   auth: AuthContextValue;
 }
+
+const TanStackRouterDevtools = import.meta.env.DEV
+  ? lazy(async () => {
+      const mod = await import("@tanstack/react-router-devtools");
+      return { default: mod.TanStackRouterDevtools };
+    })
+  : null;
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: RootComponent,
@@ -30,15 +36,15 @@ declare module "@react-types/shared" {
 }
 
 function RootComponent() {
-  const { theme } = useTheme();
-
   return (
-    <main
-      className={`${theme} text-foreground bg-background min-h-screen flex flex-col items-center border-b gap-2`}
-    >
+    <main className="text-foreground bg-background min-h-screen flex flex-col items-center border-b gap-2">
       <NavBar />
       <Outlet />
-      <TanStackRouterDevtools />
+      {TanStackRouterDevtools ? (
+        <Suspense fallback={null}>
+          <TanStackRouterDevtools />
+        </Suspense>
+      ) : null}
     </main>
   );
 }

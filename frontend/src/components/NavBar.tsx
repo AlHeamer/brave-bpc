@@ -29,32 +29,68 @@ export function NavBar() {
 
   const router = useRouter();
 
+  const makeNavHandler = (to: string) => (event: React.MouseEvent) => {
+    if (event.defaultPrevented) return;
+
+    // Let the browser handle new-tab/window + non-left clicks.
+    if (event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+      return;
+
+    event.preventDefault();
+    router.navigate({ to });
+  };
+
   const { theme, toggleTheme } = useTheme();
 
   return (
     <Navbar as="nav" className="bg-gray-800" maxWidth="full">
       <NavbarContent className="hidden sm:flex gap-4" justify="start">
         <NavbarBrand>
-          <Link href="/" className="text-2xl font-bold text-white">
+          <Link
+            href={router.buildLocation({ to: "/" }).href}
+            className="text-2xl font-bold text-white"
+            onClick={makeNavHandler("/")}
+          >
             Brave BPC
           </Link>
         </NavbarBrand>
         {isAuthenticated && (
           <>
             <NavbarItem>
-              <Link href="/dashboard">Dashboard</Link>
+              <Link
+                href={router.buildLocation({ to: "/dashboard" }).href}
+                onClick={makeNavHandler("/dashboard")}
+              >
+                Dashboard
+              </Link>
             </NavbarItem>
             <NavbarItem>
-              <Link href="/list">List</Link>
+              <Link
+                href={router.buildLocation({ to: "/list" }).href}
+                onClick={makeNavHandler("/list")}
+              >
+                List
+              </Link>
             </NavbarItem>
             <NavbarItem>
-              <Link href="/requests">Requests</Link>
+              <Link
+                href={router.buildLocation({ to: "/requests" }).href}
+                onClick={makeNavHandler("/requests")}
+              >
+                Requests
+              </Link>
             </NavbarItem>
           </>
         )}
         {user?.auth_level === 3 && (
           <NavbarItem>
-            <Link href="/admin">Admin</Link>
+            <Link
+              href={router.buildLocation({ to: "/admin" }).href}
+              onClick={makeNavHandler("/admin")}
+            >
+              Admin
+            </Link>
           </NavbarItem>
         )}
       </NavbarContent>
