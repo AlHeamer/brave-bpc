@@ -48,7 +48,7 @@ export function NavBar() {
       <NavbarContent className="hidden sm:flex gap-4" justify="start">
         <NavbarBrand>
           <Link
-            href={router.buildLocation({ to: "/" }).href}
+            href="/"
             className="text-2xl font-bold text-white"
             onClick={makeNavHandler("/")}
           >
@@ -59,7 +59,7 @@ export function NavBar() {
           <>
             <NavbarItem>
               <Link
-                href={router.buildLocation({ to: "/dashboard" }).href}
+                href="/dashboard"
                 onClick={makeNavHandler("/dashboard")}
               >
                 Dashboard
@@ -67,7 +67,7 @@ export function NavBar() {
             </NavbarItem>
             <NavbarItem>
               <Link
-                href={router.buildLocation({ to: "/list" }).href}
+                href="/list"
                 onClick={makeNavHandler("/list")}
               >
                 List
@@ -75,7 +75,7 @@ export function NavBar() {
             </NavbarItem>
             <NavbarItem>
               <Link
-                href={router.buildLocation({ to: "/requests" }).href}
+                href="/requests"
                 onClick={makeNavHandler("/requests")}
               >
                 Requests
@@ -86,7 +86,7 @@ export function NavBar() {
         {user?.auth_level === 3 && (
           <NavbarItem>
             <Link
-              href={router.buildLocation({ to: "/admin" }).href}
+              href="/admin"
               onClick={makeNavHandler("/admin")}
             >
               Admin

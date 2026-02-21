@@ -54,6 +54,7 @@ export default function LazyImage({
 }: LazyImageProps) {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [shouldLoad, setShouldLoad] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     if (shouldLoad) return;
@@ -79,13 +80,14 @@ export default function LazyImage({
   return (
     <img
       ref={imgRef}
-      alt={alt}
+      alt={hasError ? "" : alt}
       className={className}
       decoding="async"
       loading="lazy"
       height={height}
       width={width}
-      src={shouldLoad ? src : TRANSPARENT_PIXEL}
+      src={shouldLoad && !hasError ? src : TRANSPARENT_PIXEL}
+      onError={() => setHasError(true)}
     />
   );
 }

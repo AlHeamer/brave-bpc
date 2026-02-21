@@ -13,7 +13,7 @@ function RouteComponent() {
     data: openRequisitions = [],
     isLoading: areRequisitionsLoading,
     error: requisitionsError,
-  } = useRequisitionsQuery(0);
+  } = useRequisitionsQuery(1);
 
   const {
     data: blueprintGroups = [],

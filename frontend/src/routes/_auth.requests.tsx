@@ -134,6 +134,7 @@ function RouteComponent() {
   } = useRequisitionsQuery(statusFilter);
 
   const [selectedKey, setSelectedKey] = useState<number | null>(null);
+  const selectedKeyRef = useRef<number | null>(null);
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
     column: "updated_at",
     direction: "descending",
@@ -146,6 +147,10 @@ function RouteComponent() {
 
   const requiresLocking = auth_level >= LOCK_AUTH_THRESHOLD;
   const selectingRef = useRef(false);
+
+  useEffect(() => {
+    selectedKeyRef.current = selectedKey;
+  }, [selectedKey]);
 
   const requestById = useMemo(() => {
     const map = new Map<number, BlueprintRequest>();
@@ -288,7 +293,7 @@ function RouteComponent() {
       if (selectingRef.current) return;
       selectingRef.current = true;
 
-      const previousSelectedKey = selectedKey;
+      const currentSelectedKey = selectedKeyRef.current;
       const request = requestById.get(key);
       const lockable = shouldLockRequest(request);
       const lockOwnerName = request?.lock?.character_name;
@@ -296,20 +301,32 @@ function RouteComponent() {
       const isLockedByOther = hasLock && lockOwnerName !== user.character_name;
       const isLockedBySelf = hasLock && lockOwnerName === user.character_name;
       const currentRequest =
-        selectedKey === null ? null : (requestById.get(selectedKey) ?? null);
+        currentSelectedKey === null
+          ? null
+          : (requestById.get(currentSelectedKey) ?? null);
       const currentLockable = shouldLockRequest(currentRequest);
 
       try {
-        if (selectedKey === key) {
+        if (currentSelectedKey === key) {
           if (lockable) {
             await releaseLock(key).catch(() => undefined);
           }
+          selectedKeyRef.current = null;
           setSelectedKey(null);
           return;
         }
 
-        if (currentLockable && selectedKey !== null && selectedKey !== key) {
-          return;
+        if (
+          currentLockable &&
+          currentSelectedKey !== null &&
+          currentSelectedKey !== key
+        ) {
+          // Switching directly between lockable requests: release the current lock first.
+          try {
+            await releaseLock(currentSelectedKey);
+          } catch {
+            return;
+          }
         }
 
         if (lockable && isLockedByOther) {
@@ -318,23 +335,26 @@ function RouteComponent() {
 
         if (lockable) {
           if (!isLockedBySelf) {
+            selectedKeyRef.current = key;
             setSelectedKey(key);
             try {
               await acquireLock(key);
             } catch {
-              setSelectedKey(previousSelectedKey);
+              selectedKeyRef.current = null;
+              setSelectedKey(null);
               return;
             }
             return;
           }
         }
+
+        selectedKeyRef.current = key;
         setSelectedKey(key);
       } finally {
         selectingRef.current = false;
       }
     },
     [
-      selectedKey,
       requestById,
       shouldLockRequest,
       acquireLock,
@@ -367,32 +387,24 @@ function RouteComponent() {
       const nextKey = rawValue === null ? null : Number(rawValue);
 
       if (nextKey === null || Number.isNaN(nextKey)) {
-        if (selectedKey !== null) {
-          void toggleExpand(selectedKey);
+        const currentSelectedKey = selectedKeyRef.current;
+        if (currentSelectedKey !== null) {
+          void toggleExpand(currentSelectedKey);
         }
         return;
       }
 
       void toggleExpand(nextKey);
     },
-    [selectedKey, toggleExpand]
+    [toggleExpand]
   );
 
   const handleView = useCallback(
     (id: number) => {
       if (selectingRef.current) return;
-      const currentRequest =
-        selectedKey === null ? null : (requestById.get(selectedKey) ?? null);
-      if (
-        currentRequest &&
-        selectedKey !== id &&
-        shouldLockRequest(currentRequest)
-      ) {
-        return;
-      }
       void toggleExpand(id);
     },
-    [requestById, selectedKey, shouldLockRequest, toggleExpand]
+    [toggleExpand]
   );
 
   const handleStatusSelectionChange = useCallback((keys: Selection) => {
@@ -535,7 +547,6 @@ function RouteComponent() {
               items={sortedItems}
               showLockStatus={auth_level >= LOCK_AUTH_THRESHOLD}
               currentCharacterName={user.character_name}
-              selectedKey={selectedKey}
               selectedRequest={selectedRequest}
               shouldLockRequest={shouldLockRequest}
               resolveStatusMetadata={resolveStatusMetadata}
@@ -551,7 +562,7 @@ function RouteComponent() {
       </div>
 
       {selectedRequest && (
-        <aside className="sticky top-4 flex w-[420px] flex-col">
+        <aside className="sticky top-4 flex w-[720px] flex-col">
           <div className="flex h-[620px] flex-col gap-4 rounded-xl border border-default-200 bg-content1 p-4 shadow-sm">
             <div className="flex items-center justify-between">
               <h3 className="text-medium font-semibold">
@@ -607,6 +618,8 @@ function RouteComponent() {
                 ariaLabel="Selected request details"
                 className="h-full w-full"
                 blueprints={selectedRequest.blueprints}
+                nameAsSnippet
+                compact
                 emptyContent="No blueprints"
               />
             </div>
