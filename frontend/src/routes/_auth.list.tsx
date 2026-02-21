@@ -185,8 +185,8 @@ function RouteComponent() {
           type_name: item.type_name,
           type_id: item.blueprint.type_id,
           runs: item.blueprint.runs,
-          material_efficiency: item.blueprint.material_efficiency ?? 0,
-          time_efficiency: item.blueprint.time_efficiency ?? 0,
+          me: item.blueprint.material_efficiency ?? 0,
+          te: item.blueprint.time_efficiency ?? 0,
           quantity:
             selected[item.blueprint.key]?.value ?? item.blueprint.quantity,
         })),
