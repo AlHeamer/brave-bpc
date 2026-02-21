@@ -64,6 +64,15 @@ const BlueprintGroupsTable = memo(
           typeName: string;
           firstBlueprint: Blueprint;
           isExpanded: boolean;
+          summary: {
+            meMin: number;
+            meMax: number;
+            teMin: number;
+            teMax: number;
+            runsMin: number;
+            runsMax: number;
+            qtyTotal: number;
+          };
         }
       | {
           key: string;
@@ -72,10 +81,50 @@ const BlueprintGroupsTable = memo(
           blueprint: Blueprint;
         };
 
+    const summarizeGroup = (blueprints: Blueprint[]) => {
+      let meMin = Number.POSITIVE_INFINITY;
+      let meMax = Number.NEGATIVE_INFINITY;
+      let teMin = Number.POSITIVE_INFINITY;
+      let teMax = Number.NEGATIVE_INFINITY;
+      let runsMin = Number.POSITIVE_INFINITY;
+      let runsMax = Number.NEGATIVE_INFINITY;
+      let qtyTotal = 0;
+
+      for (const bp of blueprints) {
+        const me = bp.material_efficiency ?? 0;
+        const te = bp.time_efficiency ?? 0;
+        const runs = bp.runs;
+        const qty = bp.quantity ?? 0;
+
+        meMin = Math.min(meMin, me);
+        meMax = Math.max(meMax, me);
+        teMin = Math.min(teMin, te);
+        teMax = Math.max(teMax, te);
+        runsMin = Math.min(runsMin, runs);
+        runsMax = Math.max(runsMax, runs);
+        qtyTotal += qty;
+      }
+
+      if (!Number.isFinite(meMin)) meMin = 0;
+      if (!Number.isFinite(teMin)) teMin = 0;
+      if (!Number.isFinite(runsMin)) runsMin = 0;
+      if (!Number.isFinite(meMax)) meMax = meMin;
+      if (!Number.isFinite(teMax)) teMax = teMin;
+      if (!Number.isFinite(runsMax)) runsMax = runsMin;
+
+      return { meMin, meMax, teMin, teMax, runsMin, runsMax, qtyTotal };
+    };
+
     const renderSortIndicator = (key: keyof Blueprint | "name") =>
       sortKey === key ? (sortAsc ? " ▲" : " ▼") : "";
 
     const flatRows = useMemo<DisplayRow[]>(() => {
+      // HeroUI table rendering memoizes based on the collection derived from
+      // `items`. When selectionState changes, we need the collection to rebuild
+      // so checkbox ticks / adjust inputs update visually.
+      const selectionStateNonce = Object.keys(selectionState).length;
+      if (selectionStateNonce < 0) return [];
+
       if (groups.length === 0) return [];
 
       const out: DisplayRow[] = [];
@@ -103,6 +152,7 @@ const BlueprintGroupsTable = memo(
           typeName,
           firstBlueprint,
           isExpanded,
+          summary: summarizeGroup(blueprints),
         });
 
         if (isExpanded) {
@@ -125,9 +175,6 @@ const BlueprintGroupsTable = memo(
       }
 
       return out;
-      // NOTE: HeroUI table rendering memoizes based on the collection derived
-      // from `items`. When selectionState changes, we need the collection to
-      // rebuild so checkbox ticks / adjust inputs update visually.
     }, [expandedGroups, groups, selectionState]);
 
     const renderBlueprintCells = (
@@ -136,6 +183,11 @@ const BlueprintGroupsTable = memo(
       showTypeInfo: boolean,
     ) => {
       const state = selectionState[blueprint.key];
+
+      const me = blueprint.material_efficiency ?? 0;
+      const te = blueprint.time_efficiency ?? 0;
+      const runs = blueprint.runs;
+      const qty = blueprint.quantity;
 
       return [
         <TableCell
@@ -153,15 +205,37 @@ const BlueprintGroupsTable = memo(
                 width={40}
                 src={`https://images.evetech.net/types/${blueprint.type_id}/bpc?size=128`}
               />
-              {typeName}
+              <div className="flex min-w-0 flex-col">
+                <div className="min-w-0 break-words">{typeName}</div>
+                <div className="text-xs font-normal text-default-500 md:hidden">
+                  ME {me} · TE {te} · Runs {runs} · Qty {qty}
+                </div>
+              </div>
             </>
-          ) : null}
+          ) : (
+            <div className="flex flex-col">
+              <div className="text-sm font-medium text-default-900">Copy</div>
+              <div className="text-xs text-default-500 md:hidden">
+                ME {me} · TE {te} · Runs {runs} · Qty {qty}
+              </div>
+            </div>
+          )}
         </TableCell>,
-        <TableCell key="group">{null}</TableCell>,
-        <TableCell key="me">{blueprint.material_efficiency ?? 0}</TableCell>,
-        <TableCell key="te">{blueprint.time_efficiency ?? 0}</TableCell>,
-        <TableCell key="runs">{blueprint.runs}</TableCell>,
-        <TableCell key="qty">{blueprint.quantity}</TableCell>,
+        <TableCell key="group" className="hidden md:table-cell">
+          {null}
+        </TableCell>,
+        <TableCell key="me" className="hidden md:table-cell">
+          {me}
+        </TableCell>,
+        <TableCell key="te" className="hidden md:table-cell">
+          {te}
+        </TableCell>,
+        <TableCell key="runs" className="hidden md:table-cell">
+          {runs}
+        </TableCell>,
+        <TableCell key="qty" className="hidden md:table-cell">
+          {qty}
+        </TableCell>,
         <TableCell key="adjust">
           <div className="flex h-10 items-center justify-center">
             {state?.checked ? (
@@ -208,30 +282,30 @@ const BlueprintGroupsTable = memo(
             Name
             {renderSortIndicator("name")}
           </TableColumn>
-          <TableColumn>Group</TableColumn>
+          <TableColumn className="hidden md:table-cell">Group</TableColumn>
           <TableColumn
-            className="cursor-pointer"
+            className="hidden cursor-pointer md:table-cell"
             onClick={() => onSort("material_efficiency")}
           >
             ME
             {renderSortIndicator("material_efficiency")}
           </TableColumn>
           <TableColumn
-            className="cursor-pointer"
+            className="hidden cursor-pointer md:table-cell"
             onClick={() => onSort("time_efficiency")}
           >
             TE
             {renderSortIndicator("time_efficiency")}
           </TableColumn>
           <TableColumn
-            className="cursor-pointer"
+            className="hidden cursor-pointer md:table-cell"
             onClick={() => onSort("runs")}
           >
             Runs
             {renderSortIndicator("runs")}
           </TableColumn>
           <TableColumn
-            className="cursor-pointer"
+            className="hidden cursor-pointer md:table-cell"
             onClick={() => onSort("quantity")}
           >
             Quantity
@@ -248,6 +322,13 @@ const BlueprintGroupsTable = memo(
         >
           {(row) => {
             if (row.kind === "groupHeader") {
+              const hintTextDesktop = row.isExpanded
+                ? "Click to collapse"
+                : "Click to expand";
+              const hintTextMobile = row.isExpanded ? "Collapse" : "Expand";
+
+              const range = (min: number, max: number) =>
+                min === max ? String(min) : `${min}–${max}`;
               return (
                 <TableRow
                   key={row.key}
@@ -262,10 +343,21 @@ const BlueprintGroupsTable = memo(
                       width={40}
                       src={`https://images.evetech.net/types/${row.firstBlueprint.type_id}/bpc?size=128`}
                     />
-                    {row.typeName}
+                    <div className="flex min-w-0 flex-col">
+                      <div className="min-w-0 break-words">{row.typeName}</div>
+                      <div className="text-xs font-normal text-default-500 md:hidden">
+                        ME {range(row.summary.meMin, row.summary.meMax)} · TE{" "}
+                        {range(row.summary.teMin, row.summary.teMax)} · Runs{" "}
+                        {range(row.summary.runsMin, row.summary.runsMax)} · Qty{" "}
+                        {row.summary.qtyTotal}
+                      </div>
+                      <div className="text-xs font-normal text-default-500 md:hidden">
+                        {hintTextMobile}
+                      </div>
+                    </div>
                   </TableCell>
-                  <TableCell className="text-sm text-gray-500">
-                    {row.isExpanded ? "Click to collapse" : "Click to expand"}
+                  <TableCell className="hidden text-sm text-default-500 md:table-cell">
+                    {hintTextDesktop}
                   </TableCell>
                   <TableCell>{null}</TableCell>
                   <TableCell>{null}</TableCell>

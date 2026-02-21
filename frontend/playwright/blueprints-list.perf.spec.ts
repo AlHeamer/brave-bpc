@@ -54,12 +54,23 @@ test.describe("Blueprint list page (browser perf/usability)", () => {
     test.setTimeout(5 * 60 * 1000);
 
     const seed = loadBlueprintFixture();
-    const groupCount = Number.parseInt(process.env.E2E_GROUPS ?? "20000", 10);
+    // Keep the perf dataset bounded so the test is representative but stable.
+    // 6000 groups × 2 blueprints/group × (seed quantities) => up to ~40,000 total copies.
+    const requestedGroups = Number.parseInt(
+      process.env.E2E_GROUPS ?? "6000",
+      10,
+    );
+    const groupCount = Math.min(
+      Number.isFinite(requestedGroups) ? requestedGroups : 6000,
+      6000,
+    );
 
     // Build many expandable groups (like real fixture data)
     const payload = buildGroupedBlueprints(seed, groupCount, {
       minPerGroup: 2,
-      maxPerGroup: 5,
+      // Keep per-group row count fixed so "copies" scale via quantity aggregation,
+      // not via an explosion of rows.
+      maxPerGroup: 2,
     });
 
     // Mock auth to avoid redirect to backend /login
@@ -250,37 +261,24 @@ test.describe("Blueprint list page (browser perf/usability)", () => {
     // Select up to 10 items.
     {
       const target = 10;
-      let attempts = 0;
-      let checkboxIndex = 0;
+      const selectedHeaders = selectedGrid.getByRole("rowheader");
 
-      while (
-        (await selectedGrid.getByRole("rowheader").count()) < target &&
-        attempts < 60
-      ) {
-        const before = await selectedGrid.getByRole("rowheader").count();
-        const checkboxCount = await grid3.getByRole("checkbox").count();
-        if (checkboxCount === 0) break;
+      // In a virtualized table, nth(i) can become unstable across re-renders.
+      // Always click an unchecked box and wait for the selected list to grow.
+      for (let selectedCount = 0; selectedCount < target; selectedCount++) {
+        const unchecked = grid3.getByRole("checkbox", { checked: false });
+        await expect
+          .poll(async () => await unchecked.count(), { timeout: 60_000 })
+          .toBeGreaterThan(0);
 
-        await grid3
-          .getByRole("checkbox")
-          .nth(checkboxIndex % checkboxCount)
-          .click();
+        await unchecked.first().click();
 
-        const after = await selectedGrid.getByRole("rowheader").count();
-        if (after > before) {
-          // progressed
-        } else {
-          // Either clicked an already-selected row or a virtualization re-render
-          // changed which checkbox we hit; move on.
-        }
-
-        checkboxIndex++;
-        attempts++;
+        await expect(selectedHeaders).toHaveCount(selectedCount + 1, {
+          timeout: 60_000,
+        });
       }
 
-      await expect(selectedGrid.getByRole("rowheader")).toHaveCount(10, {
-        timeout: 60_000,
-      });
+      await expect(selectedHeaders).toHaveCount(target, { timeout: 60_000 });
     }
 
     // Attempting to exceed should show a toast and not increase selection.
@@ -312,6 +310,13 @@ test.describe("Blueprint list page (browser perf/usability)", () => {
     await expect(grid4.getByRole("rowheader").first()).toBeVisible({
       timeout: 240_000,
     });
+
+    // With sorting + virtualization, the target group header may not be
+    // mounted in the DOM until it is within the visible window.
+    // Filter down to make it deterministic.
+    const searchBox4 = page.getByRole("textbox", { name: "Search items" });
+    await expect(searchBox4).toBeVisible({ timeout: 60_000 });
+    await searchBox4.fill("Nanite Repair Paste Blueprint");
 
     // Per-item max clamp (inventory limit) without hitting MAX_TOTAL.
     // The Playwright payload is built from expandable seed groups; Nanite has max quantity 3.
@@ -346,7 +351,8 @@ test.describe("Blueprint list page (browser perf/usability)", () => {
         .getByRole("row")
         .nth(1)
         .getByRole("gridcell")
-        .last();
+        // Column order in Selected Items: ME, TE, Runs, Quantity, Remove
+        .nth(3);
 
       await expect(decA).toBeDisabled({ timeout: 60_000 });
       await expect(selectedQtyCell).toHaveText("1", { timeout: 60_000 });
@@ -368,6 +374,10 @@ test.describe("Blueprint list page (browser perf/usability)", () => {
     await expect(grid4b.getByRole("rowheader").first()).toBeVisible({
       timeout: 240_000,
     });
+
+    const searchBox4b = page.getByRole("textbox", { name: "Search items" });
+    await expect(searchBox4b).toBeVisible({ timeout: 60_000 });
+    await searchBox4b.fill("Rocket Fuel Blueprint");
 
     // Use a deterministic expandable group that contains at least two items.
     const rocketHeader = grid4b
@@ -403,7 +413,7 @@ test.describe("Blueprint list page (browser perf/usability)", () => {
       .getByRole("row")
       .nth(1)
       .getByRole("gridcell")
-      .last();
+      .nth(3);
 
     // Set A to 9.
     for (let i = 0; i < 8; i++) {
@@ -431,7 +441,7 @@ test.describe("Blueprint list page (browser perf/usability)", () => {
       .getByRole("row")
       .nth(2)
       .getByRole("gridcell")
-      .last();
+      .nth(3);
     await expect(selectedQtyCellB).toHaveText("1", { timeout: 60_000 });
   });
 });

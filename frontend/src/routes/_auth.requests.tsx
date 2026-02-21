@@ -487,8 +487,8 @@ function RouteComponent() {
   ]);
 
   return (
-    <div className="flex items-start gap-6">
-      <div className="flex w-[1000px] flex-col gap-4">
+    <div className="flex h-full min-h-0 w-full flex-col items-stretch gap-6 lg:flex-row lg:items-stretch">
+      <div className="flex w-full flex-1 min-h-0 flex-col gap-4 lg:w-[1000px]">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <label
@@ -538,7 +538,7 @@ function RouteComponent() {
           </div>
         </div>
 
-        <div className="h-[620px] overflow-hidden rounded-xl border border-default-200 bg-content1 p-2 shadow-sm">
+        <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-default-200 bg-content1 p-2 shadow-sm">
           <div className="h-full overflow-auto rounded-lg border border-default-200 bg-content2">
             <RequestsTable
               className="h-full"
@@ -562,13 +562,13 @@ function RouteComponent() {
       </div>
 
       {selectedRequest && (
-        <aside className="sticky top-4 flex w-[720px] flex-col">
-          <div className="flex h-[620px] flex-col gap-4 rounded-xl border border-default-200 bg-content1 p-4 shadow-sm">
-            <div className="flex items-center justify-between">
+        <aside className="flex w-full flex-col lg:sticky lg:top-4 lg:w-[720px]">
+          <div className="flex h-auto flex-col gap-4 rounded-xl border border-default-200 bg-content1 p-4 shadow-sm lg:h-full">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 className="text-medium font-semibold">
                 Request #{selectedRequest.id} details
               </h3>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {selectedRequest.character_id === character_id &&
                   isOpenStatus(selectedRequest.status) && (
                     <Button
@@ -577,6 +577,7 @@ function RouteComponent() {
                         handleRequestAction("cancel", selectedRequest.id)
                       }
                       variant="ghost"
+                      size="sm"
                     >
                       Cancel
                     </Button>
@@ -590,6 +591,7 @@ function RouteComponent() {
                           handleRequestAction("complete", selectedRequest.id)
                         }
                         variant="ghost"
+                        size="sm"
                       >
                         Complete
                       </Button>
@@ -599,6 +601,7 @@ function RouteComponent() {
                           handleRequestAction("reject", selectedRequest.id)
                         }
                         variant="ghost"
+                        size="sm"
                       >
                         Reject
                       </Button>
@@ -607,13 +610,14 @@ function RouteComponent() {
                 <Button
                   onPress={() => void toggleExpand(selectedRequest.id)}
                   variant="flat"
+                  size="sm"
                 >
                   Close
                 </Button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-auto rounded-lg border border-default-200 bg-content2 p-2">
+            <div className="max-h-[70vh] overflow-auto rounded-lg border border-default-200 bg-content2 p-2 lg:max-h-none lg:flex-1">
               <BlueprintsTable
                 ariaLabel="Selected request details"
                 className="h-full w-full"

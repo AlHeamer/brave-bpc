@@ -80,14 +80,26 @@ const RequestsTable = memo(
         <TableColumn allowsSorting key="status">
           Status
         </TableColumn>
-        <TableColumn allowsSorting key="created_at">
+        <TableColumn
+          allowsSorting
+          key="created_at"
+          className="hidden md:table-cell"
+        >
           Created At
         </TableColumn>
-        <TableColumn allowsSorting key="updated_at">
+        <TableColumn
+          allowsSorting
+          key="updated_at"
+          className="hidden md:table-cell"
+        >
           Updated At
         </TableColumn>
-        <TableColumn key="updated_by">Updated By</TableColumn>
-        <TableColumn key="public_notes">Public Notes</TableColumn>
+        <TableColumn key="updated_by" className="hidden md:table-cell">
+          Updated By
+        </TableColumn>
+        <TableColumn key="public_notes" className="hidden md:table-cell">
+          Public Notes
+        </TableColumn>
         <TableColumn key="actions">Actions</TableColumn>
       </TableHeader>
 
@@ -224,10 +236,18 @@ const RequestsTable = memo(
                 />
               </TableCell>
               <TableCell>{renderStatus()}</TableCell>
-              <TableCell>{renderDate(item.created_at)}</TableCell>
-              <TableCell>{renderDate(item.updated_at)}</TableCell>
-              <TableCell>{item.updated_by || "N/A"}</TableCell>
-              <TableCell>{item.public_notes}</TableCell>
+              <TableCell className="hidden md:table-cell">
+                {renderDate(item.created_at)}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                {renderDate(item.updated_at)}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                {item.updated_by || "N/A"}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                {item.public_notes}
+              </TableCell>
               <TableCell>{renderExpandButton()}</TableCell>
             </TableRow>
           );

@@ -216,12 +216,27 @@ function RouteComponent() {
       quantity:
         selected[item.blueprint.key]?.value ?? item.blueprint.quantity ?? 1,
       type_name: item.type_name,
+      selectionKey: item.blueprint.key,
     }));
   }, [selected, selectedItems]);
 
+  const handleRemoveSelected = (selectionKey: string) => {
+    setSelected((prev) => {
+      const existing = prev[selectionKey];
+      if (!existing) return prev;
+      return {
+        ...prev,
+        [selectionKey]: {
+          checked: false,
+          value: existing.value,
+        },
+      };
+    });
+  };
+
   return (
-    <div className="flex items-start gap-6">
-      <div className="flex w-[1000px] flex-col gap-4">
+    <div className="flex h-full min-h-0 w-full flex-col gap-6 lg:flex-row">
+      <div className="flex w-full flex-1 min-h-0 flex-col gap-4 lg:w-[1000px]">
         <Input
           aria-label="Search items"
           placeholder="Search items..."
@@ -229,10 +244,10 @@ function RouteComponent() {
           onChange={(event: ChangeEvent<HTMLInputElement>) =>
             setSearch(event.target.value)
           }
-          className="w-72 font-semibold"
+          className="w-full font-semibold sm:w-72"
         />
 
-        <div className="h-[620px] overflow-hidden rounded-xl border border-default-200 bg-content1 p-2 shadow-sm">
+        <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-default-200 bg-content1 p-2 shadow-sm">
           <BlueprintGroupsTable
             className="h-full"
             groups={filteredGroups}
@@ -249,17 +264,18 @@ function RouteComponent() {
         </div>
       </div>
       {selected && (
-        <aside className="sticky top-4 flex w-[480px] flex-col">
+        <aside className="flex w-full flex-col lg:sticky lg:top-4 lg:w-[480px]">
           <div className="flex flex-col gap-4 rounded-xl border border-default-200 bg-content1 p-4 shadow-sm">
             <h2 className="text-center text-lg font-semibold text-default-900">
               Selected Items
             </h2>
-            <div className="h-[470px] overflow-auto rounded-lg border border-default-200 bg-content2">
+            <div className="max-h-[60vh] overflow-auto rounded-lg border border-default-200 bg-content2 lg:h-[470px] lg:max-h-none">
               <BlueprintsTable
                 ariaLabel="Selected items table"
                 className="h-full w-full"
                 blueprints={selectedBlueprints}
                 emptyContent="No items selected"
+                onRemove={handleRemoveSelected}
               />
             </div>
             <Button

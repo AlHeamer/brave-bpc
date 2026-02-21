@@ -37,9 +37,11 @@ declare module "@react-types/shared" {
 
 function RootComponent() {
   return (
-    <main className="text-foreground bg-background min-h-screen flex flex-col items-center border-b gap-2">
+    <main className="text-foreground bg-background min-h-screen flex flex-col items-stretch border-b">
       <NavBar />
-      <Outlet />
+      <div className="w-full flex-1 min-h-0 px-3 py-3 sm:px-6 sm:py-4">
+        <Outlet />
+      </div>
       {TanStackRouterDevtools ? (
         <Suspense fallback={null}>
           <TanStackRouterDevtools />

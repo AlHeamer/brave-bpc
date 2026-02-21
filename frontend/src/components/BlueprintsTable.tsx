@@ -1,4 +1,5 @@
 import {
+  Button,
   Table,
   TableHeader,
   TableColumn,
@@ -12,14 +13,18 @@ import type { BlueprintRequest } from "../api/requisitions";
 import LazyImage from "./LazyImage";
 
 type BlueprintLineItem = BlueprintRequest["blueprints"][number];
+type BlueprintLineItemWithSelection = BlueprintLineItem & {
+  selectionKey?: string;
+};
 
 export interface BlueprintsTableProps {
-  blueprints: BlueprintLineItem[];
+  blueprints: BlueprintLineItemWithSelection[];
   emptyContent?: string;
   ariaLabel?: string;
   nameAsSnippet?: boolean;
   className?: string;
   compact?: boolean;
+  onRemove?: (selectionKey: string) => void;
 }
 
 const BlueprintsTable = memo(
@@ -30,6 +35,7 @@ const BlueprintsTable = memo(
     nameAsSnippet = false,
     compact = false,
     className,
+    onRemove,
   }: BlueprintsTableProps) => (
     <Table
       aria-label={ariaLabel}
@@ -42,27 +48,53 @@ const BlueprintsTable = memo(
         <TableColumn key="bp">Blueprint</TableColumn>
         <TableColumn
           key="me"
-          className={compact ? "w-14 whitespace-nowrap" : undefined}
+          className={[
+            "hidden md:table-cell",
+            compact ? "w-14 whitespace-nowrap" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
           ME
         </TableColumn>
         <TableColumn
           key="te"
-          className={compact ? "w-14 whitespace-nowrap" : undefined}
+          className={[
+            "hidden md:table-cell",
+            compact ? "w-14 whitespace-nowrap" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
           TE
         </TableColumn>
         <TableColumn
           key="runs"
-          className={compact ? "w-16 whitespace-nowrap" : undefined}
+          className={[
+            "hidden md:table-cell",
+            compact ? "w-16 whitespace-nowrap" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
           Runs
         </TableColumn>
         <TableColumn
           key="qty"
-          className={compact ? "w-20 whitespace-nowrap" : undefined}
+          className={[
+            "hidden md:table-cell",
+            compact ? "w-20 whitespace-nowrap" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
           Quantity
+        </TableColumn>
+        <TableColumn
+          key="remove"
+          className={onRemove ? "w-12 whitespace-nowrap" : "hidden"}
+        >
+          {" "}
         </TableColumn>
       </TableHeader>
       <TableBody emptyContent={emptyContent}>
@@ -108,20 +140,86 @@ const BlueprintsTable = memo(
                       {blueprint.type_name}
                     </span>
                   )}
+
+                  <div className="mt-1 text-xs text-default-500 md:hidden">
+                    <span className="whitespace-nowrap">
+                      ME {blueprint.material_efficiency ?? 0}
+                    </span>
+                    <span className="mx-2">•</span>
+                    <span className="whitespace-nowrap">
+                      TE {blueprint.time_efficiency ?? 0}
+                    </span>
+                    <span className="mx-2">•</span>
+                    <span className="whitespace-nowrap">
+                      Runs {blueprint.runs}
+                    </span>
+                    <span className="mx-2">•</span>
+                    <span className="whitespace-nowrap">
+                      Qty {blueprint.quantity ?? 1}
+                    </span>
+                  </div>
                 </div>
               </div>
             </TableCell>
-            <TableCell className={compact ? "whitespace-nowrap" : undefined}>
+            <TableCell
+              className={[
+                "hidden md:table-cell",
+                compact ? "whitespace-nowrap" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
               {blueprint.material_efficiency ?? 0}
             </TableCell>
-            <TableCell className={compact ? "whitespace-nowrap" : undefined}>
+            <TableCell
+              className={[
+                "hidden md:table-cell",
+                compact ? "whitespace-nowrap" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
               {blueprint.time_efficiency ?? 0}
             </TableCell>
-            <TableCell className={compact ? "whitespace-nowrap" : undefined}>
+            <TableCell
+              className={[
+                "hidden md:table-cell",
+                compact ? "whitespace-nowrap" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
               {blueprint.runs}
             </TableCell>
-            <TableCell className={compact ? "whitespace-nowrap" : undefined}>
+            <TableCell
+              className={[
+                "hidden md:table-cell",
+                compact ? "whitespace-nowrap" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
               {blueprint.quantity ?? 1}
+            </TableCell>
+
+            <TableCell className={onRemove ? "whitespace-nowrap" : "hidden"}>
+              {onRemove ? (
+                <Button
+                  aria-label={`Remove ${blueprint.type_name}`}
+                  className="min-w-0 px-2"
+                  color="danger"
+                  isDisabled={!blueprint.selectionKey}
+                  onPress={() =>
+                    blueprint.selectionKey
+                      ? onRemove(blueprint.selectionKey)
+                      : undefined
+                  }
+                  size="sm"
+                  variant="light"
+                >
+                  ✕
+                </Button>
+              ) : null}
             </TableCell>
           </TableRow>
         ))}
