@@ -36,7 +36,9 @@ type BlueprintRequest = {
   blueprints: BlueprintLineItem[];
 };
 
-function makeRequest(partial: Partial<BlueprintRequest> & { id: number }): BlueprintRequest {
+function makeRequest(
+  partial: Partial<BlueprintRequest> & { id: number },
+): BlueprintRequest {
   const now = "2026-02-21T12:00:00.000Z";
 
   return {
@@ -62,7 +64,10 @@ function makeRequest(partial: Partial<BlueprintRequest> & { id: number }): Bluep
   };
 }
 
-async function mockSession(page: import("@playwright/test").Page, user: SessionUser) {
+async function mockSession(
+  page: import("@playwright/test").Page,
+  user: SessionUser,
+) {
   await page.route(/\/session(\?.*)?$/, async (route) => {
     await route.fulfill({
       status: 200,
@@ -105,15 +110,27 @@ async function gotoRequests(page: import("@playwright/test").Page) {
 test.describe("Requests page", () => {
   test.describe.configure({ mode: "parallel" });
 
-  test("'Viewing' label works for other-user requests (member)", async ({ page }) => {
+  test("'Viewing' label works for other-user requests (member)", async ({
+    page,
+  }) => {
     await mockSession(page, {
       character_name: "Playwright Test",
       auth_level: 1,
       character_id: 123,
     });
 
-    const req44 = makeRequest({ id: 44, character_id: 123, character_name: "Playwright Test", status: 1 });
-    const req45 = makeRequest({ id: 45, character_id: 999, character_name: "Ren Caderu", status: 1 });
+    const req44 = makeRequest({
+      id: 44,
+      character_id: 123,
+      character_name: "Playwright Test",
+      status: 1,
+    });
+    const req45 = makeRequest({
+      id: 45,
+      character_id: 999,
+      character_name: "Ren Caderu",
+      status: 1,
+    });
 
     await mockRequisitions(page, () => [req44, req45]);
     await blockEveImages(page);
@@ -123,57 +140,107 @@ test.describe("Requests page", () => {
     const row45 = requestsGrid.getByRole("row", { name: /\b45\b/ });
 
     await row45.getByRole("button", { name: "View" }).click();
-    await expect(row45.getByRole("button", { name: "Viewing" })).toBeVisible({ timeout: UI_TIMEOUT_MS });
-    await expect(page.getByText("Request #45 details")).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(row45.getByRole("button", { name: "Viewing" })).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
+    await expect(page.getByText("Request #45 details")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
 
-    await expect(row44.getByRole("button", { name: "View" })).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(row44.getByRole("button", { name: "View" })).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
   });
 
-  test("'Viewing' label works for other-user lockable requests (admin)", async ({ page }) => {
+  test("'Viewing' label works for other-user lockable requests (admin)", async ({
+    page,
+  }) => {
     await mockSession(page, {
       character_name: "Playwright Test",
       auth_level: 99,
       character_id: 123,
     });
 
-    const req44 = makeRequest({ id: 44, character_id: 123, character_name: "Playwright Test", status: 1 });
-    const req45 = makeRequest({ id: 45, character_id: 999, character_name: "Ren Caderu", status: 1 });
+    const req44 = makeRequest({
+      id: 44,
+      character_id: 123,
+      character_name: "Playwright Test",
+      status: 1,
+    });
+    const req45 = makeRequest({
+      id: 45,
+      character_id: 999,
+      character_name: "Ren Caderu",
+      status: 1,
+    });
 
     await mockRequisitions(page, () => [req44, req45]);
     await blockEveImages(page);
 
     // Admin selection attempts to acquire a lock for open requests.
-    await page.route(/\/api\/requisition\/(\d+)\/lock(\?.*)?$/, async (route) => {
-      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
-    });
-    await page.route(/\/api\/requisition\/(\d+)\/unlock(\?.*)?$/, async (route) => {
-      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
-    });
+    await page.route(
+      /\/api\/requisition\/(\d+)\/lock(\?.*)?$/,
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: "{}",
+        });
+      },
+    );
+    await page.route(
+      /\/api\/requisition\/(\d+)\/unlock(\?.*)?$/,
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: "{}",
+        });
+      },
+    );
 
     const requestsGrid = await gotoRequests(page);
     const row45 = requestsGrid.getByRole("row", { name: /\b45\b/ });
 
     await Promise.all([
       page.waitForResponse(
-        (resp) => resp.url().includes("/api/requisition/45/lock") && resp.status() === 200,
+        (resp) =>
+          resp.url().includes("/api/requisition/45/lock") &&
+          resp.status() === 200,
         { timeout: UI_TIMEOUT_MS },
       ),
       row45.getByRole("button", { name: "View" }).click(),
     ]);
 
-    await expect(row45.getByRole("button", { name: "Viewing" })).toBeVisible({ timeout: UI_TIMEOUT_MS });
-    await expect(page.getByText("Request #45 details")).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(row45.getByRole("button", { name: "Viewing" })).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
+    await expect(page.getByText("Request #45 details")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
   });
 
-  test("switching between requests moves 'Viewing' button text", async ({ page }) => {
+  test("switching between requests moves 'Viewing' button text", async ({
+    page,
+  }) => {
     await mockSession(page, {
       character_name: "Playwright Test",
       auth_level: 1,
       character_id: 123,
     });
 
-    const req44 = makeRequest({ id: 44, character_id: 123, character_name: "Playwright Test", status: 1 });
-    const req45 = makeRequest({ id: 45, character_id: 999, character_name: "Ren Caderu", status: 4 });
+    const req44 = makeRequest({
+      id: 44,
+      character_id: 123,
+      character_name: "Playwright Test",
+      status: 1,
+    });
+    const req45 = makeRequest({
+      id: 45,
+      character_id: 999,
+      character_name: "Ren Caderu",
+      status: 4,
+    });
 
     await mockRequisitions(page, () => [req44, req45]);
     await blockEveImages(page);
@@ -183,26 +250,48 @@ test.describe("Requests page", () => {
     const row45 = requestsGrid.getByRole("row", { name: /\b45\b/ });
 
     await row44.getByRole("button", { name: "View" }).click();
-    await expect(row44.getByRole("button", { name: "Viewing" })).toBeVisible({ timeout: UI_TIMEOUT_MS });
-    await expect(page.getByText("Request #44 details")).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(row44.getByRole("button", { name: "Viewing" })).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
+    await expect(page.getByText("Request #44 details")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
 
     await row45.getByRole("button", { name: "View" }).click();
-    await expect(row45.getByRole("button", { name: "Viewing" })).toBeVisible({ timeout: UI_TIMEOUT_MS });
-    await expect(page.getByText("Request #45 details")).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(row45.getByRole("button", { name: "Viewing" })).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
+    await expect(page.getByText("Request #45 details")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
 
     // Previously-viewed row should revert.
-    await expect(row44.getByRole("button", { name: "View" })).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(row44.getByRole("button", { name: "View" })).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
   });
 
-  test("admin direct switch releases lock then locks new request", async ({ page }) => {
+  test("admin direct switch releases lock then locks new request", async ({
+    page,
+  }) => {
     await mockSession(page, {
       character_name: "Playwright Test",
       auth_level: 99,
       character_id: 123,
     });
 
-    const req44 = makeRequest({ id: 44, character_id: 123, character_name: "Playwright Test", status: 1 });
-    const req45 = makeRequest({ id: 45, character_id: 999, character_name: "Ren Caderu", status: 1 });
+    const req44 = makeRequest({
+      id: 44,
+      character_id: 123,
+      character_name: "Playwright Test",
+      status: 1,
+    });
+    const req45 = makeRequest({
+      id: 45,
+      character_id: 999,
+      character_name: "Ren Caderu",
+      status: 1,
+    });
 
     await mockRequisitions(page, () => [req44, req45]);
     await blockEveImages(page);
@@ -210,17 +299,37 @@ test.describe("Requests page", () => {
     const lockCalls: number[] = [];
     const unlockCalls: number[] = [];
 
-    await page.route(/\/api\/requisition\/(\d+)\/lock(\?.*)?$/, async (route) => {
-      const m = route.request().url().match(/\/api\/requisition\/(\d+)\/lock/);
-      if (m?.[1]) lockCalls.push(Number(m[1]));
-      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
-    });
+    await page.route(
+      /\/api\/requisition\/(\d+)\/lock(\?.*)?$/,
+      async (route) => {
+        const m = route
+          .request()
+          .url()
+          .match(/\/api\/requisition\/(\d+)\/lock/);
+        if (m?.[1]) lockCalls.push(Number(m[1]));
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: "{}",
+        });
+      },
+    );
 
-    await page.route(/\/api\/requisition\/(\d+)\/unlock(\?.*)?$/, async (route) => {
-      const m = route.request().url().match(/\/api\/requisition\/(\d+)\/unlock/);
-      if (m?.[1]) unlockCalls.push(Number(m[1]));
-      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
-    });
+    await page.route(
+      /\/api\/requisition\/(\d+)\/unlock(\?.*)?$/,
+      async (route) => {
+        const m = route
+          .request()
+          .url()
+          .match(/\/api\/requisition\/(\d+)\/unlock/);
+        if (m?.[1]) unlockCalls.push(Number(m[1]));
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: "{}",
+        });
+      },
+    );
 
     const requestsGrid = await gotoRequests(page);
     const row44 = requestsGrid.getByRole("row", { name: /\b44\b/ });
@@ -229,16 +338,23 @@ test.describe("Requests page", () => {
     await Promise.all([
       page.waitForResponse(
         (resp) =>
-          resp.url().includes("/api/requisition/44/lock") && resp.status() === 200,
+          resp.url().includes("/api/requisition/44/lock") &&
+          resp.status() === 200,
         { timeout: UI_TIMEOUT_MS },
       ),
       row44.getByRole("button", { name: "View" }).click(),
     ]);
-    await expect.poll(() => lockCalls, { timeout: UI_TIMEOUT_MS }).toEqual([44]);
-    await expect(page.getByText("Request #44 details")).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect
+      .poll(() => lockCalls, { timeout: UI_TIMEOUT_MS })
+      .toEqual([44]);
+    await expect(page.getByText("Request #44 details")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
 
     // Direct switch should unlock the previous request then lock the new one.
-    await expect(row45.getByRole("button", { name: "View" })).toBeEnabled({ timeout: UI_TIMEOUT_MS });
+    await expect(row45.getByRole("button", { name: "View" })).toBeEnabled({
+      timeout: UI_TIMEOUT_MS,
+    });
 
     await Promise.all([
       page.waitForRequest(
@@ -256,9 +372,15 @@ test.describe("Requests page", () => {
       row45.getByRole("button", { name: "View" }).click(),
     ]);
 
-    await expect.poll(() => unlockCalls, { timeout: UI_TIMEOUT_MS }).toEqual([44]);
-    await expect.poll(() => lockCalls, { timeout: UI_TIMEOUT_MS }).toEqual([44, 45]);
-    await expect(page.getByText("Request #45 details")).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect
+      .poll(() => unlockCalls, { timeout: UI_TIMEOUT_MS })
+      .toEqual([44]);
+    await expect
+      .poll(() => lockCalls, { timeout: UI_TIMEOUT_MS })
+      .toEqual([44, 45]);
+    await expect(page.getByText("Request #45 details")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
   });
 
   test("highlights viewed row and shows 'Viewing'", async ({ page }) => {
@@ -268,8 +390,18 @@ test.describe("Requests page", () => {
       character_id: 123,
     });
 
-    const req44 = makeRequest({ id: 44, character_id: 123, character_name: "Playwright Test", status: 1 });
-    const req41 = makeRequest({ id: 41, character_id: 999, character_name: "Ren Caderu", status: 4 });
+    const req44 = makeRequest({
+      id: 44,
+      character_id: 123,
+      character_name: "Playwright Test",
+      status: 1,
+    });
+    const req41 = makeRequest({
+      id: 41,
+      character_id: 999,
+      character_name: "Ren Caderu",
+      status: 4,
+    });
 
     await mockRequisitions(page, () => [req44, req41]);
     await blockEveImages(page);
@@ -282,13 +414,19 @@ test.describe("Requests page", () => {
     await row44.getByRole("button", { name: "View" }).click();
 
     // Row-level highlight is driven by selection attributes + CSS.
-    await expect(row44).toHaveAttribute("data-selected", "true", { timeout: UI_TIMEOUT_MS });
+    await expect(row44).toHaveAttribute("data-selected", "true", {
+      timeout: UI_TIMEOUT_MS,
+    });
 
     // The action button should reflect the viewed state.
-    await expect(row44.getByRole("button", { name: "Viewing" })).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(row44.getByRole("button", { name: "Viewing" })).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
 
     // Details panel shows the request.
-    await expect(page.getByText("Request #44 details")).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(page.getByText("Request #44 details")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
   });
 
   test("admin role locks on view and unlocks on close", async ({ page }) => {
@@ -298,7 +436,12 @@ test.describe("Requests page", () => {
       character_id: 123,
     });
 
-    const req44 = makeRequest({ id: 44, character_id: 123, character_name: "Playwright Test", status: 1 });
+    const req44 = makeRequest({
+      id: 44,
+      character_id: 123,
+      character_name: "Playwright Test",
+      status: 1,
+    });
 
     await mockRequisitions(page, () => [req44]);
     await blockEveImages(page);
@@ -308,12 +451,20 @@ test.describe("Requests page", () => {
 
     await page.route(/\/api\/requisition\/(\d+)\/lock$/, async (route) => {
       lockCalls += 1;
-      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "{}",
+      });
     });
 
     await page.route(/\/api\/requisition\/(\d+)\/unlock$/, async (route) => {
       unlockCalls += 1;
-      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "{}",
+      });
     });
 
     const requestsTable = await gotoRequests(page);
@@ -322,7 +473,9 @@ test.describe("Requests page", () => {
     await row44.getByRole("button", { name: "View" }).click();
 
     await expect.poll(() => lockCalls, { timeout: UI_TIMEOUT_MS }).toBe(1);
-    await expect(page.getByText("Request #44 details")).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(page.getByText("Request #44 details")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
 
     await page.getByRole("button", { name: "Close" }).click();
 
@@ -337,16 +490,28 @@ test.describe("Requests page", () => {
       character_id: 123,
     });
 
-    const ownOpen = makeRequest({ id: 44, character_id: 123, character_name: "Playwright Test", status: 1 });
+    const ownOpen = makeRequest({
+      id: 44,
+      character_id: 123,
+      character_name: "Playwright Test",
+      status: 1,
+    });
 
     await mockRequisitions(page, () => [ownOpen]);
     await blockEveImages(page);
 
     await gotoRequests(page);
-    await page.getByRole("row", { name: /\b44\b/ }).getByRole("button", { name: "View" }).click();
+    await page
+      .getByRole("row", { name: /\b44\b/ })
+      .getByRole("button", { name: "View" })
+      .click();
 
-    await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible({ timeout: UI_TIMEOUT_MS });
-    await expect(page.getByRole("button", { name: "Close" })).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
+    await expect(page.getByRole("button", { name: "Close" })).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
     await expect(page.getByRole("button", { name: "Complete" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Reject" })).toHaveCount(0);
 
@@ -360,19 +525,36 @@ test.describe("Requests page", () => {
 
     // Admin selection attempts to acquire a lock for open requests.
     await page.route(/\/api\/requisition\/(\d+)\/lock$/, async (route) => {
-      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "{}",
+      });
     });
     await page.route(/\/api\/requisition\/(\d+)\/unlock$/, async (route) => {
-      await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: "{}",
+      });
     });
 
     // Re-load with admin session.
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.getByRole("row", { name: /\b44\b/ }).getByRole("button", { name: "View" }).click();
+    await page
+      .getByRole("row", { name: /\b44\b/ })
+      .getByRole("button", { name: "View" })
+      .click();
 
-    await expect(page.getByRole("button", { name: "Complete" })).toBeVisible({ timeout: UI_TIMEOUT_MS });
-    await expect(page.getByRole("button", { name: "Reject" })).toBeVisible({ timeout: UI_TIMEOUT_MS });
-    await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(page.getByRole("button", { name: "Complete" })).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
+    await expect(page.getByRole("button", { name: "Reject" })).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
+    await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
   });
 
   test("status filtering and character search", async ({ page }) => {
@@ -382,9 +564,24 @@ test.describe("Requests page", () => {
       character_id: 123,
     });
 
-    const openA = makeRequest({ id: 44, character_id: 123, character_name: "Playwright Test", status: 1 });
-    const openB = makeRequest({ id: 45, character_id: 999, character_name: "Ren Caderu", status: 1 });
-    const rejected = makeRequest({ id: 41, character_id: 999, character_name: "Ren Caderu", status: 4 });
+    const openA = makeRequest({
+      id: 44,
+      character_id: 123,
+      character_name: "Playwright Test",
+      status: 1,
+    });
+    const openB = makeRequest({
+      id: 45,
+      character_id: 999,
+      character_name: "Ren Caderu",
+      status: 1,
+    });
+    const rejected = makeRequest({
+      id: 41,
+      character_id: 999,
+      character_name: "Ren Caderu",
+      status: 4,
+    });
 
     await mockRequisitions(page, (status) => {
       if (status === 1) return [openA, openB];
@@ -395,15 +592,23 @@ test.describe("Requests page", () => {
     await blockEveImages(page);
 
     const requestsTable = await gotoRequests(page);
-    await expect(requestsTable.getByText("44")).toBeVisible({ timeout: UI_TIMEOUT_MS });
-    await expect(requestsTable.getByText("45")).toBeVisible({ timeout: UI_TIMEOUT_MS });
-    await expect(requestsTable.getByText("41")).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(requestsTable.getByText("44")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
+    await expect(requestsTable.getByText("45")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
+    await expect(requestsTable.getByText("41")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
 
     // Filter status to Rejected.
     await page.getByRole("button", { name: /All Status/i }).click();
     await page.getByRole("option", { name: "Rejected" }).click();
 
-    await expect(requestsTable.getByText("41")).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(requestsTable.getByText("41")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
     await expect(requestsTable.getByText("44")).toHaveCount(0);
     await expect(requestsTable.getByText("45")).toHaveCount(0);
 
@@ -411,14 +616,22 @@ test.describe("Requests page", () => {
     await page.getByRole("button", { name: /Rejected Status/i }).click();
     await page.getByRole("option", { name: "All" }).click();
 
-    await expect(requestsTable.getByText("44")).toBeVisible({ timeout: UI_TIMEOUT_MS });
-    await expect(requestsTable.getByText("45")).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(requestsTable.getByText("44")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
+    await expect(requestsTable.getByText("45")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
 
     // Character search (client-side filter).
     await page.getByLabel("Character").fill("Ren");
 
-    await expect(requestsTable.getByText("45")).toBeVisible({ timeout: UI_TIMEOUT_MS });
-    await expect(requestsTable.getByText("41")).toBeVisible({ timeout: UI_TIMEOUT_MS });
+    await expect(requestsTable.getByText("45")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
+    await expect(requestsTable.getByText("41")).toBeVisible({
+      timeout: UI_TIMEOUT_MS,
+    });
     await expect(requestsTable.getByText("44")).toHaveCount(0);
   });
 });

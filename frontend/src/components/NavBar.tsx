@@ -58,26 +58,17 @@ export function NavBar() {
         {isAuthenticated && (
           <>
             <NavbarItem>
-              <Link
-                href="/dashboard"
-                onClick={makeNavHandler("/dashboard")}
-              >
+              <Link href="/dashboard" onClick={makeNavHandler("/dashboard")}>
                 Dashboard
               </Link>
             </NavbarItem>
             <NavbarItem>
-              <Link
-                href="/list"
-                onClick={makeNavHandler("/list")}
-              >
+              <Link href="/list" onClick={makeNavHandler("/list")}>
                 List
               </Link>
             </NavbarItem>
             <NavbarItem>
-              <Link
-                href="/requests"
-                onClick={makeNavHandler("/requests")}
-              >
+              <Link href="/requests" onClick={makeNavHandler("/requests")}>
                 Requests
               </Link>
             </NavbarItem>
@@ -85,10 +76,7 @@ export function NavBar() {
         )}
         {user?.auth_level === 3 && (
           <NavbarItem>
-            <Link
-              href="/admin"
-              onClick={makeNavHandler("/admin")}
-            >
+            <Link href="/admin" onClick={makeNavHandler("/admin")}>
               Admin
             </Link>
           </NavbarItem>

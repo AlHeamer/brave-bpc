@@ -51,7 +51,10 @@ function makeRequest(id: number): BlueprintRequest {
   };
 }
 
-async function mockSession(page: import("@playwright/test").Page, user: SessionUser) {
+async function mockSession(
+  page: import("@playwright/test").Page,
+  user: SessionUser,
+) {
   await page.route(/\/session(\?.*)?$/, async (route) => {
     await route.fulfill({
       status: 200,
@@ -78,7 +81,10 @@ test("Dashboard lists open requisitions using status=1", async ({ page }) => {
       await route.fulfill({
         status: 400,
         contentType: "application/json",
-        body: JSON.stringify({ code: 400, msg: `unexpected status=${String(status)}` }),
+        body: JSON.stringify({
+          code: 400,
+          msg: `unexpected status=${String(status)}`,
+        }),
       });
       return;
     }
@@ -104,5 +110,7 @@ test("Dashboard lists open requisitions using status=1", async ({ page }) => {
   const cardHeader = page.getByText("Open Requisitions");
   await expect(cardHeader).toBeVisible();
 
-  await expect(page.getByText(String(openReqs.length), { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(String(openReqs.length), { exact: true }),
+  ).toBeVisible();
 });

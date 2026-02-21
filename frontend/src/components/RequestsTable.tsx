@@ -234,7 +234,7 @@ const RequestsTable = memo(
         }}
       </TableBody>
     </Table>
-  )
+  ),
 );
 
 RequestsTable.displayName = "RequestsTable";

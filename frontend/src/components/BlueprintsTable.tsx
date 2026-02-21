@@ -40,16 +40,28 @@ const BlueprintsTable = memo(
     >
       <TableHeader className="bg-default-100/90 text-default-700 shadow-sm backdrop-blur supports-[backdrop-filter]:backdrop-blur-md dark:bg-default-50/80 dark:text-default-300">
         <TableColumn key="bp">Blueprint</TableColumn>
-        <TableColumn key="me" className={compact ? "w-14 whitespace-nowrap" : undefined}>
+        <TableColumn
+          key="me"
+          className={compact ? "w-14 whitespace-nowrap" : undefined}
+        >
           ME
         </TableColumn>
-        <TableColumn key="te" className={compact ? "w-14 whitespace-nowrap" : undefined}>
+        <TableColumn
+          key="te"
+          className={compact ? "w-14 whitespace-nowrap" : undefined}
+        >
           TE
         </TableColumn>
-        <TableColumn key="runs" className={compact ? "w-16 whitespace-nowrap" : undefined}>
+        <TableColumn
+          key="runs"
+          className={compact ? "w-16 whitespace-nowrap" : undefined}
+        >
           Runs
         </TableColumn>
-        <TableColumn key="qty" className={compact ? "w-20 whitespace-nowrap" : undefined}>
+        <TableColumn
+          key="qty"
+          className={compact ? "w-20 whitespace-nowrap" : undefined}
+        >
           Quantity
         </TableColumn>
       </TableHeader>

@@ -142,7 +142,7 @@ function RouteComponent() {
 
   const statusSelectedKeys = useMemo(
     () => new Set<string>([String(statusFilter)]),
-    [statusFilter]
+    [statusFilter],
   );
 
   const requiresLocking = auth_level >= LOCK_AUTH_THRESHOLD;
@@ -233,7 +233,7 @@ function RouteComponent() {
       }
       return isOpenStatus(request.status);
     },
-    [requiresLocking]
+    [requiresLocking],
   );
 
   const acquireLock = useCallback(
@@ -251,14 +251,14 @@ function RouteComponent() {
         addToast({
           title: "Lock Error",
           description: `Failed to acquire lock for request ${id}: ${String(
-            err
+            err,
           )}`,
           color: "danger",
         });
         throw err;
       }
     },
-    [requiresLocking]
+    [requiresLocking],
   );
 
   const releaseLock = useCallback(
@@ -278,14 +278,14 @@ function RouteComponent() {
         addToast({
           title: "Lock Error",
           description: `Failed to release lock for request ${id}: ${String(
-            err
+            err,
           )}`,
           color: "danger",
         });
         throw err;
       }
     },
-    [requiresLocking, refetch]
+    [requiresLocking, refetch],
   );
 
   const toggleExpand = useCallback(
@@ -360,7 +360,7 @@ function RouteComponent() {
       acquireLock,
       releaseLock,
       user.character_name,
-    ]
+    ],
   );
 
   const selectedRequest = useMemo(() => {
@@ -396,7 +396,7 @@ function RouteComponent() {
 
       void toggleExpand(nextKey);
     },
-    [toggleExpand]
+    [toggleExpand],
   );
 
   const handleView = useCallback(
@@ -404,7 +404,7 @@ function RouteComponent() {
       if (selectingRef.current) return;
       void toggleExpand(id);
     },
-    [toggleExpand]
+    [toggleExpand],
   );
 
   const handleStatusSelectionChange = useCallback((keys: Selection) => {
@@ -437,7 +437,7 @@ function RouteComponent() {
           {
             method: "PATCH",
             credentials: "include",
-          }
+          },
         );
         if (!response.ok) {
           throw new Error(`Failed to ${action} request (${response.status})`);
@@ -462,7 +462,7 @@ function RouteComponent() {
         setSelectedKey(null);
       }
     },
-    [refetch, requiresLocking, selectedKey]
+    [refetch, requiresLocking, selectedKey],
   );
 
   useEffect(() => {
