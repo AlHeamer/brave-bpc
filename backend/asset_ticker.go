@@ -18,6 +18,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	scienceLounge int64 = 1047935338899
+	bpHangar            = string(glue.LocationFlag_CorpSAG7)
+)
+
 var (
 	errCtxInitial      = errors.New("initial oauth context")
 	errCtxCreateFailed = errors.New("createOauthContext failed")
@@ -105,7 +110,7 @@ type inventoryState struct {
 	containerNames map[int64]string
 	hangarNames    []string
 	typeNames      map[int32]string
-	tree           map[int64]CorpAsset
+	tree           map[int64]*CorpAsset
 }
 
 func (app *app) updateBlueprintInventory(ctx context.Context, logger *zap.Logger, incremental bool) (*inventoryState, error) {
@@ -129,6 +134,23 @@ func (app *app) updateBlueprintInventory(ctx context.Context, logger *zap.Logger
 
 	// populate bpo/bpc with a total count of each type/quality
 	for _, bp := range inv.blueprints {
+		// vv temp filtering code vv
+		if bp.LocationFlag != bpHangar {
+			continue
+		}
+		if parent, ok := inv.tree[bp.LocationId]; ok {
+			if parent.Asset.LocationId != scienceLounge {
+				if gp, gpok := inv.tree[parent.Asset.LocationId]; !gpok {
+					continue
+				} else {
+					if gp.Asset.LocationId != scienceLounge {
+						continue
+					}
+				}
+			}
+		}
+		// ^^ temp filtering code ^^
+
 		var (
 			m   map[int32][]esi.GetCorporationsCorporationIdBlueprints200Ok
 			qty int32 = 1
@@ -142,9 +164,10 @@ func (app *app) updateBlueprintInventory(ctx context.Context, logger *zap.Logger
 			switch glue.LocationFlag(bp.LocationFlag) {
 			default:
 				unknownLocationIds = append(unknownLocationIds, bp.LocationId)
-			case
-				// noop for these location flags as they will error when calling the universe/names endpoint
-				glue.LocationFlag_AssetSafety:
+			case // noop for these location flags as they will error when calling the universe/names endpoint
+				glue.LocationFlag_AssetSafety,
+				glue.LocationFlag_CorpDeliveries,
+				glue.LocationFlag_OfficeFolder:
 			}
 		}
 
@@ -511,22 +534,25 @@ type CorpAsset struct {
 	Children []*CorpAsset
 }
 
-func (app *app) buildAssetTree(assets []esi.GetCorporationsCorporationIdAssets200Ok) map[int64]CorpAsset {
-	m := make(map[int64]CorpAsset, len(assets))
-	for _, asset := range assets {
-		child, ok := m[asset.ItemId]
-		if !ok {
-			child = CorpAsset{Asset: &asset}
-			m[asset.ItemId] = child
+func (app *app) buildAssetTree(assetList []esi.GetCorporationsCorporationIdAssets200Ok) map[int64]*CorpAsset {
+	m := map[int64]*CorpAsset{}
+
+	for _, asset := range assetList {
+		ca := m[asset.ItemId]
+		if ca == nil {
+			ca = &CorpAsset{Asset: &asset}
+			m[asset.ItemId] = ca
+		}
+		if ca.Asset == nil {
+			ca.Asset = &asset
 		}
 
-		parent, ok := m[asset.LocationId]
-		if ok {
-			parent = CorpAsset{}
+		parent := m[asset.LocationId]
+		if parent == nil {
+			parent = &CorpAsset{}
+			m[asset.LocationId] = parent
 		}
-
-		parent.Children = append(parent.Children, &child)
-		m[asset.LocationId] = parent
+		parent.Children = append(parent.Children, ca)
 	}
 
 	return m

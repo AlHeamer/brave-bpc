@@ -95,7 +95,7 @@ func main() {
 			bpos:           map[int32][]esi.GetCorporationsCorporationIdBlueprints200Ok{},
 			containerNames: map[int64]string{},
 			typeNames:      map[int32]string{},
-			tree:           map[int64]CorpAsset{},
+			tree:           map[int64]*CorpAsset{},
 		},
 		requisitionLocks:      newSyncMap[int64, requisitionLock](),
 		runtimeConfig:         runtimeConfig,
