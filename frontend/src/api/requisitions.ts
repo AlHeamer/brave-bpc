@@ -16,6 +16,19 @@ export interface BlueprintLineItem {
   type_name: string;
 }
 
+type BlueprintLineItemWire = Omit<
+  BlueprintLineItem,
+  "material_efficiency" | "time_efficiency"
+> & {
+  // Backend currently uses `me`/`te` for requisition blueprint lines.
+  me?: number;
+  te?: number;
+
+  // Accept the alternative names as well (tolerance for future changes).
+  material_efficiency?: number;
+  time_efficiency?: number;
+};
+
 export interface RequisitionLock {
   locked_at: string;
   character_id: number;
@@ -35,11 +48,16 @@ export interface BlueprintRequest {
   blueprints: BlueprintLineItem[];
 }
 
+type BlueprintRequestWire = Omit<BlueprintRequest, "blueprints"> & {
+  blueprints: BlueprintLineItemWire[];
+};
+
 export interface CreateRequisitionBlueprint {
+  type_name: string;
   type_id: number;
   runs: number;
-  material_efficiency: number;
-  time_efficiency: number;
+  me: number;
+  te: number;
   quantity: number;
 }
 
@@ -76,12 +94,23 @@ export async function fetchRequisitions({
     throw new Error(`Failed to load requisitions (${response.status})`);
   }
 
-  const data: BlueprintRequest[] = await response.json();
-  return data;
+  const data: BlueprintRequestWire[] = await response.json();
+
+  return data.map((request) => ({
+    ...request,
+    blueprints: (request.blueprints ?? []).map((bp) => ({
+      type_id: bp.type_id,
+      runs: bp.runs,
+      quantity: bp.quantity,
+      type_name: bp.type_name,
+      material_efficiency: bp.material_efficiency ?? bp.me,
+      time_efficiency: bp.time_efficiency ?? bp.te,
+    })),
+  }));
 }
 
 export function useRequisitionsQuery(
-  status?: number
+  status?: number,
 ): UseQueryResult<BlueprintRequest[]> {
   return useQuery({
     queryKey:

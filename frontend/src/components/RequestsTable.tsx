@@ -31,7 +31,6 @@ export interface RequestsTableProps {
   currentCharacterName: string;
   selectedKeys: Selection;
   sortDescriptor: SortDescriptor;
-  selectedKey: number | null;
   selectedRequest: BlueprintRequest | null;
   shouldLockRequest: (request?: BlueprintRequest | null) => boolean;
   resolveStatusMetadata: (status?: string | number) => StatusMetadata;
@@ -51,7 +50,6 @@ const RequestsTable = memo(
     currentCharacterName,
     selectedKeys,
     sortDescriptor,
-    selectedKey,
     selectedRequest,
     shouldLockRequest,
     resolveStatusMetadata,
@@ -82,14 +80,26 @@ const RequestsTable = memo(
         <TableColumn allowsSorting key="status">
           Status
         </TableColumn>
-        <TableColumn allowsSorting key="created_at">
+        <TableColumn
+          allowsSorting
+          key="created_at"
+          className="hidden md:table-cell"
+        >
           Created At
         </TableColumn>
-        <TableColumn allowsSorting key="updated_at">
+        <TableColumn
+          allowsSorting
+          key="updated_at"
+          className="hidden md:table-cell"
+        >
           Updated At
         </TableColumn>
-        <TableColumn key="updated_by">Updated By</TableColumn>
-        <TableColumn key="public_notes">Public Notes</TableColumn>
+        <TableColumn key="updated_by" className="hidden md:table-cell">
+          Updated By
+        </TableColumn>
+        <TableColumn key="public_notes" className="hidden md:table-cell">
+          Public Notes
+        </TableColumn>
         <TableColumn key="actions">Actions</TableColumn>
       </TableHeader>
 
@@ -101,6 +111,17 @@ const RequestsTable = memo(
       >
         {(item: BlueprintRequest) => {
           const characterName = item.character_name || "Unknown";
+
+          const selectedLabel = (unselected: string, selected: string) => (
+            <>
+              <span className="group-data-[selected=true]/tr:hidden">
+                {unselected}
+              </span>
+              <span className="hidden group-data-[selected=true]/tr:inline">
+                {selected}
+              </span>
+            </>
+          );
 
           const renderStatus = () => {
             const metadata = resolveStatusMetadata(item.status);
@@ -124,9 +145,10 @@ const RequestsTable = memo(
 
           const renderExpandButton = () => {
             const { id } = item;
-            const isSelected = selectedKey === id;
             const requestNeedsLock = shouldLockRequest(item);
             const selectedNeedsLock = shouldLockRequest(selectedRequest);
+            const viewingClasses =
+              "group-data-[selected=true]/tr:pointer-events-none group-data-[selected=true]/tr:opacity-70";
 
             if (item.lock) {
               const isLockOwner =
@@ -141,15 +163,16 @@ const RequestsTable = memo(
                   : `Locked by ${item.lock.character_name}`
                 : "Locked";
 
-              const disabled = !isLockOwner || isSelected || selectedNeedsLock;
+              const disabled = !isLockOwner;
               const button = (
                 <Button
                   disabled={disabled}
                   onPress={() => onView(id)}
                   size="sm"
                   variant="flat"
+                  className={viewingClasses}
                 >
-                  {isSelected ? "Viewing" : "Locked"}
+                  {selectedLabel("Locked", "Viewing")}
                 </Button>
               );
 
@@ -163,44 +186,35 @@ const RequestsTable = memo(
             }
 
             if (!requestNeedsLock) {
-              const disabled = isSelected || selectedNeedsLock;
               return (
                 <Button
-                  disabled={disabled}
                   onPress={() => onView(id)}
                   size="sm"
                   variant="flat"
+                  className={viewingClasses}
                 >
-                  {isSelected ? "Viewing" : "View"}
+                  {selectedLabel("View", "Viewing")}
                 </Button>
               );
             }
 
-            if (isSelected) {
-              return (
-                <Button disabled size="sm" variant="flat">
-                  Viewing
-                </Button>
-              );
-            }
-
-            if (!selectedNeedsLock) {
-              return (
-                <Button onPress={() => onView(id)} size="sm" variant="flat">
-                  View
-                </Button>
-              );
-            }
-
+            // Lockable, not selected: allow switching even if another lockable request is selected.
+            // The Requests route will release the previous lock and acquire this one.
+            void selectedNeedsLock;
             return (
-              <Button disabled size="sm" variant="flat">
-                View
+              <Button
+                onPress={() => onView(id)}
+                size="sm"
+                variant="flat"
+                className={viewingClasses}
+              >
+                {selectedLabel("View", "Viewing")}
               </Button>
             );
           };
 
           return (
-            <TableRow key={String(item.id)}>
+            <TableRow key={String(item.id)} className="group/tr">
               <TableCell>{item.id}</TableCell>
               <TableCell>
                 <User
@@ -222,17 +236,25 @@ const RequestsTable = memo(
                 />
               </TableCell>
               <TableCell>{renderStatus()}</TableCell>
-              <TableCell>{renderDate(item.created_at)}</TableCell>
-              <TableCell>{renderDate(item.updated_at)}</TableCell>
-              <TableCell>{item.updated_by || "N/A"}</TableCell>
-              <TableCell>{item.public_notes}</TableCell>
+              <TableCell className="hidden md:table-cell">
+                {renderDate(item.created_at)}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                {renderDate(item.updated_at)}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                {item.updated_by || "N/A"}
+              </TableCell>
+              <TableCell className="hidden md:table-cell">
+                {item.public_notes}
+              </TableCell>
               <TableCell>{renderExpandButton()}</TableCell>
             </TableRow>
           );
         }}
       </TableBody>
     </Table>
-  )
+  ),
 );
 
 RequestsTable.displayName = "RequestsTable";

@@ -3,3 +3,20 @@
 
 @source '../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
 @custom-variant dark (&:is(.dark *));
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Requests page: highlight the currently viewed request row. */
+  [aria-label="Requests Table"] tr[data-selected="true"] {
+    @apply bg-default-200/70 dark:bg-default-50/15 ring-2 ring-inset ring-primary/35;
+  }
+}

@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_auth/list")({
 });
 
 const MAX_TOTAL = 10;
-type BlueprintWithName = Blueprint & { type_name: string };
+type SelectedBlueprint = { blueprint: Blueprint; type_name: string };
 
 function RouteComponent() {
   const { data: blueprintGroups = [], isLoading, error } = useBlueprintsQuery();
@@ -52,18 +52,20 @@ function RouteComponent() {
     return total;
   };
 
-  const flattenedBlueprints = useMemo<BlueprintWithName[]>(() => {
-    return blueprintGroups.flatMap((group) =>
-      group.blueprints.map((blueprint) => ({
-        ...blueprint,
-        type_name: group.type_name,
-      }))
-    );
-  }, [blueprintGroups]);
+  const selectedItems = useMemo<SelectedBlueprint[]>(() => {
+    if (blueprintGroups.length === 0) return [];
 
-  const selectedItems = useMemo(() => {
-    return flattenedBlueprints.filter((item) => selected[item.key]?.checked);
-  }, [flattenedBlueprints, selected]);
+    const out: SelectedBlueprint[] = [];
+    for (const group of blueprintGroups) {
+      const typeName = group.type_name;
+      for (const blueprint of group.blueprints) {
+        if (selected[blueprint.key]?.checked) {
+          out.push({ blueprint, type_name: typeName });
+        }
+      }
+    }
+    return out;
+  }, [blueprintGroups, selected]);
 
   const toggleExpand = (groupId: string) => {
     setExpandedGroups((prev) => {
@@ -114,7 +116,7 @@ function RouteComponent() {
     const parsedValue = typeof rawValue === "number" ? rawValue : 1;
     const clampedValue = Math.min(
       Math.max(Math.floor(parsedValue) || 1, 1),
-      item.quantity
+      item.quantity,
     );
 
     setSelected((prev) => {
@@ -147,7 +149,7 @@ function RouteComponent() {
     const normalizedSearch = search.trim().toLowerCase();
     const filtered = normalizedSearch.length
       ? blueprintGroups.filter((group) =>
-          group.type_name.toLowerCase().includes(normalizedSearch)
+          group.type_name.toLowerCase().includes(normalizedSearch),
         )
       : blueprintGroups;
 
@@ -181,11 +183,12 @@ function RouteComponent() {
       await createRequisition.mutateAsync({
         blueprints: selectedItems.map((item) => ({
           type_name: item.type_name,
-          type_id: item.type_id,
-          runs: item.runs,
-          material_efficiency: item.material_efficiency ?? 0,
-          time_efficiency: item.time_efficiency ?? 0,
-          quantity: selected[item.key]?.value ?? item.quantity,
+          type_id: item.blueprint.type_id,
+          runs: item.blueprint.runs,
+          me: item.blueprint.material_efficiency ?? 0,
+          te: item.blueprint.time_efficiency ?? 0,
+          quantity:
+            selected[item.blueprint.key]?.value ?? item.blueprint.quantity,
         })),
       });
       addToast({
@@ -206,18 +209,34 @@ function RouteComponent() {
 
   const selectedBlueprints = useMemo(() => {
     return selectedItems.map((item) => ({
-      type_id: item.type_id,
-      runs: item.runs,
-      material_efficiency: item.material_efficiency ?? 0,
-      time_efficiency: item.time_efficiency ?? 0,
-      quantity: selected[item.key]?.value ?? item.quantity ?? 1,
+      type_id: item.blueprint.type_id,
+      runs: item.blueprint.runs,
+      material_efficiency: item.blueprint.material_efficiency ?? 0,
+      time_efficiency: item.blueprint.time_efficiency ?? 0,
+      quantity:
+        selected[item.blueprint.key]?.value ?? item.blueprint.quantity ?? 1,
       type_name: item.type_name,
+      selectionKey: item.blueprint.key,
     }));
   }, [selected, selectedItems]);
 
+  const handleRemoveSelected = (selectionKey: string) => {
+    setSelected((prev) => {
+      const existing = prev[selectionKey];
+      if (!existing) return prev;
+      return {
+        ...prev,
+        [selectionKey]: {
+          checked: false,
+          value: existing.value,
+        },
+      };
+    });
+  };
+
   return (
-    <div className="flex items-start gap-6">
-      <div className="flex w-[1000px] flex-col gap-4">
+    <div className="flex h-full min-h-0 w-full flex-col gap-6 lg:flex-row">
+      <div className="flex w-full flex-1 min-h-0 flex-col gap-4 lg:w-[1000px]">
         <Input
           aria-label="Search items"
           placeholder="Search items..."
@@ -225,10 +244,10 @@ function RouteComponent() {
           onChange={(event: ChangeEvent<HTMLInputElement>) =>
             setSearch(event.target.value)
           }
-          className="w-72 font-semibold"
+          className="w-full font-semibold sm:w-72"
         />
 
-        <div className="h-[620px] overflow-hidden rounded-xl border border-default-200 bg-content1 p-2 shadow-sm">
+        <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-default-200 bg-content1 p-2 shadow-sm">
           <BlueprintGroupsTable
             className="h-full"
             groups={filteredGroups}
@@ -245,17 +264,18 @@ function RouteComponent() {
         </div>
       </div>
       {selected && (
-        <aside className="sticky top-4 flex w-[480px] flex-col">
+        <aside className="flex w-full flex-col lg:sticky lg:top-4 lg:w-[480px]">
           <div className="flex flex-col gap-4 rounded-xl border border-default-200 bg-content1 p-4 shadow-sm">
             <h2 className="text-center text-lg font-semibold text-default-900">
               Selected Items
             </h2>
-            <div className="h-[470px] overflow-auto rounded-lg border border-default-200 bg-content2">
+            <div className="max-h-[60vh] overflow-auto rounded-lg border border-default-200 bg-content2 lg:h-[470px] lg:max-h-none">
               <BlueprintsTable
                 ariaLabel="Selected items table"
                 className="h-full w-full"
                 blueprints={selectedBlueprints}
                 emptyContent="No items selected"
+                onRemove={handleRemoveSelected}
               />
             </div>
             <Button
