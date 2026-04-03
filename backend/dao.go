@@ -52,21 +52,48 @@ LIMIT 1
 	}
 
 	conf := &appConfig{}
-	json.Unmarshal(strConfig, conf)
+	if err := json.Unmarshal(strConfig, conf); err != nil {
+		return nil, fmt.Errorf("error unmarshalling config json: %w", err)
+	}
 
 	return conf, nil
 }
 
-func (dao *dao) updateConfig(newConfig *appConfig) error {
+func (dao *dao) createConfig(updatedBy string, newConfig *appConfig) error {
 	jsonConfig, err := json.Marshal(newConfig)
 	if err != nil {
 		return fmt.Errorf("error marshaling config json: %w", err)
 	}
+	if len(strings.TrimSpace(updatedBy)) == 0 {
+		updatedBy = "unknown"
+	}
+
+	_, err = dao.db.Exec(`
+INSERT INTO config(updated_by, config)
+VALUES (?,?)
+`, updatedBy, jsonConfig)
+	if err != nil {
+		return fmt.Errorf("error creating config: %w", err)
+	}
+
+	return nil
+}
+
+func (dao *dao) updateConfig(updatedBy string, newConfig *appConfig) error {
+	jsonConfig, err := json.Marshal(newConfig)
+	if err != nil {
+		return fmt.Errorf("error marshaling config json: %w", err)
+	}
+	if len(strings.TrimSpace(updatedBy)) == 0 {
+		updatedBy = "unknown"
+	}
 
 	_, err = dao.db.Exec(`
 UPDATE config
-SET config=?
-`, jsonConfig)
+SET updated_at=NOW(),
+	updated_by=?,
+	config=?
+`, updatedBy, jsonConfig)
 	if err != nil {
 		return fmt.Errorf("error updating config: %w", err)
 	}

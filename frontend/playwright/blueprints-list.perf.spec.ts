@@ -86,6 +86,17 @@ test.describe("Blueprint list page (browser perf/usability)", () => {
       });
     });
 
+    await page.route("**/api/public-config", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          max_request_items: 10,
+          homepage_markdown: "# Perf test homepage",
+        }),
+      });
+    });
+
     // Mock the blueprint API response
     await page.route("**/api/blueprints", async (route) => {
       await route.fulfill({
@@ -244,7 +255,7 @@ test.describe("Blueprint list page (browser perf/usability)", () => {
     });
 
     // Notification upon reaching max total.
-    // The page enforces MAX_TOTAL=10 total quantity; default is 1 per selection.
+    // The page enforces MAX_REQUEST_ITEMS=10 total quantity; default is 1 per selection.
     // Expand more groups until we have at least 11 checkboxes available.
     for (let i = 0; i < 20; i++) {
       const checkboxCount = await grid3.getByRole("checkbox").count();
@@ -318,7 +329,7 @@ test.describe("Blueprint list page (browser perf/usability)", () => {
     await expect(searchBox4).toBeVisible({ timeout: 60_000 });
     await searchBox4.fill("Nanite Repair Paste Blueprint");
 
-    // Per-item max clamp (inventory limit) without hitting MAX_TOTAL.
+    // Per-item max clamp (inventory limit) without hitting MAX_REQUEST_ITEMS.
     // The Playwright payload is built from expandable seed groups; Nanite has max quantity 3.
     {
       const naniteHeader = grid4
@@ -364,7 +375,7 @@ test.describe("Blueprint list page (browser perf/usability)", () => {
       await expect(incA).toBeDisabled({ timeout: 60_000 });
     }
 
-    // MAX_TOTAL enforcement via quantity adjustment (start from clean slate).
+    // MAX_REQUEST_ITEMS enforcement via quantity adjustment (start from clean slate).
     await page.goto("/list", { waitUntil: "domcontentloaded" });
 
     const grid4b = page.getByRole("grid", {

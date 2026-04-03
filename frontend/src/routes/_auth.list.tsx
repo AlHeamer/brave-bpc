@@ -2,6 +2,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { Input, Button, addToast } from "@heroui/react";
+import { DEFAULT_MAX_REQUEST_ITEMS, usePublicConfigQuery } from "../api/config";
 import {
   useBlueprintsQuery,
   type Blueprint,
@@ -17,12 +18,14 @@ export const Route = createFileRoute("/_auth/list")({
   component: RouteComponent,
 });
 
-const MAX_TOTAL = 10;
 type SelectedBlueprint = { blueprint: Blueprint; type_name: string };
 
 function RouteComponent() {
   const { data: blueprintGroups = [], isLoading, error } = useBlueprintsQuery();
+  const { data: publicConfig } = usePublicConfigQuery();
   const createRequisition = useCreateRequisitionMutation();
+  const MAX_REQUEST_ITEMS =
+    publicConfig?.max_request_items ?? DEFAULT_MAX_REQUEST_ITEMS;
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
@@ -99,10 +102,10 @@ function RouteComponent() {
         },
       };
 
-      if (checked && getTotal(nextState) > MAX_TOTAL) {
+      if (checked && getTotal(nextState) > MAX_REQUEST_ITEMS) {
         addToast({
           title: "Selection limit exceeded",
-          description: `You cannot exceed the overall limit of ${MAX_TOTAL} BPCs.`,
+          description: `You cannot exceed the overall limit of ${MAX_REQUEST_ITEMS} BPCs.`,
           color: "danger",
         });
         return prev;
@@ -128,10 +131,10 @@ function RouteComponent() {
         },
       };
 
-      if (getTotal(nextState) > MAX_TOTAL) {
+      if (getTotal(nextState) > MAX_REQUEST_ITEMS) {
         addToast({
           title: "Selection limit exceeded",
-          description: `You cannot exceed the overall limit of ${MAX_TOTAL} BPCs.`,
+          description: `You cannot exceed the overall limit of ${MAX_REQUEST_ITEMS} BPCs.`,
           color: "danger",
         });
         return prev;

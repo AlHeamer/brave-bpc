@@ -35,6 +35,9 @@ const (
 	envDbHost      = "DB_HOST"
 	envDbPort      = "DB_PORT"
 	envDbName      = "DB_NAME"
+	envInitialAllianceID      = "INITIAL_ALLIANCE_ID"
+	envInitialAdminCorpID     = "INITIAL_ADMIN_CORP_ID"
+	envInitialAdminCharacterID = "INITIAL_ADMIN_CHARACTER_ID"
 
 	cookieSession = "brave-bpc-session"
 	cookieUser    = "brave-bpc"

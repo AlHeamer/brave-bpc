@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -34,6 +36,8 @@ type appConfig struct {
 	AdminCorp            int32   `json:"admin_corp,omitempty"`    // Corporation that provides the service
 	AdminCharacter       int32   `json:"admin_char,omitempty"`    // The character used to poll corporate data
 	MaxContracts         int32   `json:"max_contracts,omitempty"` // Maximum number of contracts an account can open
+	MaxRequestItems      int32   `json:"max_request_items,omitempty"`
+	HomepageMarkdown     string  `json:"homepage_markdown,omitempty"`
 }
 
 type runtimeConfig struct {
@@ -111,8 +115,25 @@ func main() {
 	app.dao.runMigrations(logger, len(app.runtimeConfig.migrateDown) > 0)
 
 	app.config, err = app.dao.loadAppConfig()
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
+		initialConfig, envErr := initialAppConfigFromEnv()
+		if envErr != nil {
+			logger.Fatal("invalid initial config environment", zap.Error(envErr))
+		}
+		if err = validateAppConfig(initialConfig); err != nil {
+			logger.Fatal("invalid initial config", zap.Error(err))
+		}
+		if err = app.dao.createConfig("bootstrap-env", initialConfig); err != nil {
+			logger.Fatal("failed to create initial config", zap.Error(err))
+		}
+		logger.Info("created initial config from environment")
+		app.config = initialConfig
+	} else if err != nil {
 		logger.Fatal("failed to load config from db", zap.Error(err))
+	}
+	app.config = normalizeAppConfig(app.config)
+	if err = validateAppConfig(app.config); err != nil {
+		logger.Fatal("loaded invalid config from db", zap.Error(err))
 	}
 
 	gob.Register(user{})

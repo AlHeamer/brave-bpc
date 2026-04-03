@@ -72,6 +72,24 @@ interface FetchRequisitionsOptions {
   status?: number;
 }
 
+async function readApiError(
+  response: Response,
+  fallbackMessage: string,
+): Promise<never> {
+  let message = `${fallbackMessage} (${response.status})`;
+
+  try {
+    const data = (await response.json()) as { msg?: string };
+    if (typeof data.msg === "string" && data.msg.trim().length > 0) {
+      message = data.msg;
+    }
+  } catch {
+    // Ignore malformed error bodies and keep the fallback message.
+  }
+
+  throw new Error(message);
+}
+
 function buildRequisitionsUrl(status?: number) {
   const search = new URLSearchParams();
   if (status != null) {
@@ -132,7 +150,7 @@ async function postRequisition(payload: CreateRequisitionPayload) {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to create requisition (${response.status})`);
+    await readApiError(response, "Failed to create requisition");
   }
 
   return response.json().catch(() => undefined);

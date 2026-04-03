@@ -15,6 +15,7 @@ import (
 )
 
 func (app *app) createApiHandlers(mux *http.ServeMux, mw *mwChain) {
+	publicChain := mw.Add(apiMiddleware)
 	authChain := mw.Add(apiMiddleware, app.authMiddlewareFactory(authLevel_Authorized))
 	workerChain := mw.Add(apiMiddleware, app.authMiddlewareFactory(authLevel_Worker))
 	adminChain := mw.Add(apiMiddleware, app.authMiddlewareFactory(authLevel_Admin))
@@ -30,8 +31,9 @@ func (app *app) createApiHandlers(mux *http.ServeMux, mw *mwChain) {
 	mux.Handle("PATCH /api/requisition/{id}/{action}", workerChain.HandleFunc(app.patchRequisitionOrder))
 
 	mux.Handle("GET /api/refresh/admin", adminChain.HandleFunc(app.refreshAdminToken))
-	mux.Handle("GET /api/config", workerChain.HandleFunc(app.getConfig))
-	mux.Handle("POST /api/config", workerChain.HandleFunc(app.postConfig))
+	mux.Handle("GET /api/config", adminChain.HandleFunc(app.getConfig))
+	mux.Handle("POST /api/config", adminChain.HandleFunc(app.postConfig))
+	mux.Handle("GET /api/public-config", publicChain.HandleFunc(app.getPublicConfig))
 }
 
 type GetBlueprintsBlueprint struct {
@@ -58,6 +60,10 @@ func (app *app) getConfig(w http.ResponseWriter, r *http.Request) {
 	httpWrite(w, app.config)
 }
 
+func (app *app) getPublicConfig(w http.ResponseWriter, r *http.Request) {
+	httpWrite(w, app.config.publicConfig())
+}
+
 func (app *app) postConfig(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	user := app.getUserFromSession(r)
@@ -74,20 +80,26 @@ func (app *app) postConfig(w http.ResponseWriter, r *http.Request) {
 		httpError(w, "malformed config", http.StatusBadRequest)
 		return
 	}
+	newConfig = normalizeAppConfig(newConfig)
 
-	// TODO: validate
+	if err = validateAppConfig(newConfig); err != nil {
+		httpError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	if err = app.dao.updateConfig(newConfig); err != nil {
+	if err = app.dao.updateConfig(user.CharacterName, newConfig); err != nil {
 		logger.Error("error writing config to db", zap.Error(err))
 		httpError(w, "error writing config", http.StatusInternalServerError)
 		return
 	}
 
+	oldConfig := app.config
 	logger.Warn("app config updated",
 		zap.String("updated_by", user.CharacterName),
-		zap.Any("old_config", app.config),
+		zap.Any("old_config", oldConfig),
 		zap.Any("new_config", newConfig))
 	app.config = newConfig
+	httpWrite(w, app.config)
 }
 
 func apiInvalid(w http.ResponseWriter, r *http.Request) {
@@ -414,6 +426,20 @@ func (app *app) postRequisitionOrder(w http.ResponseWriter, r *http.Request) {
 	if len(bpReq.Blueprints) == 0 {
 		httpError(w, "invalid request", http.StatusBadRequest)
 		return
+	}
+
+	var totalRequested int32
+	for _, blueprint := range bpReq.Blueprints {
+		if blueprint.Quantity <= 0 {
+			httpError(w, "invalid blueprint quantity", http.StatusBadRequest)
+			return
+		}
+
+		totalRequested += blueprint.Quantity
+		if totalRequested > app.config.MaxRequestItems {
+			httpError(w, fmt.Sprintf("request exceeds max_request_items (%d)", app.config.MaxRequestItems), http.StatusBadRequest)
+			return
+		}
 	}
 
 	if err := app.dao.createRequisition(user.CharacterId, user.CharacterName, bpReq.Blueprints); err != nil {

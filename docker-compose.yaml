@@ -27,10 +27,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # backend/.env supplies the ESI credentials and optional INITIAL_* bootstrap values.
+    env_file:
+      - ./backend/.env
     environment:
       DB_HOST: db
       DB_PORT: 3306
       ENVIRONMENT: dev
+      # Optional first-run bootstrap values. Prefer setting these in backend/.env.
+      # INITIAL_ALLIANCE_ID: 99003214
+      # INITIAL_ADMIN_CORP_ID: 98544197
+      # INITIAL_ADMIN_CHARACTER_ID: 95154016
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:2727/metrics"]
       start_period: 10s
@@ -52,4 +59,3 @@ services:
 
 volumes:
   db-data:
-

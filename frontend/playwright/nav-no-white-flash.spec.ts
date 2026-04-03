@@ -97,6 +97,17 @@ test.describe("Navbar navigation (dark mode)", () => {
       });
     });
 
+    await page.route(/\/api\/public-config(\?.*)?$/, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          max_request_items: 10,
+          homepage_markdown: "# Navbar dark mode test",
+        }),
+      });
+    });
+
     // Minimal mocks for the pages we navigate across.
     await page.route(/\/api\/blueprints(\?.*)?$/, async (route) => {
       await route.fulfill({

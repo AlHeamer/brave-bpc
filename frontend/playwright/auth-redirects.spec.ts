@@ -48,6 +48,20 @@ function mockBlueprints(page: Page) {
   });
 }
 
+function mockPublicConfig(page: Page) {
+  return page.route(/\/api\/public-config(\?.*)?$/, async (route: Route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        max_request_items: 10,
+        homepage_markdown:
+          "# Welcome to Brave's BPC Request Program!\n\nConfigured homepage copy.",
+      }),
+    });
+  });
+}
+
 function mockPortraits(page: Page) {
   return page.route("https://images.evetech.net/**", async (route: Route) => {
     await route.fulfill({ status: 204, body: "" });
@@ -59,6 +73,7 @@ test.describe("Auth redirects", () => {
     page,
   }) => {
     await mockLoggedOutSession(page);
+    await mockPublicConfig(page);
 
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
@@ -78,6 +93,7 @@ test.describe("Auth redirects", () => {
     page,
   }) => {
     await mockLoggedOutSession(page);
+    await mockPublicConfig(page);
 
     await page.goto("/list", { waitUntil: "domcontentloaded" });
 
@@ -87,6 +103,7 @@ test.describe("Auth redirects", () => {
 
   test("keeps authenticated users on protected routes", async ({ page }) => {
     await mockAuthenticatedSession(page);
+    await mockPublicConfig(page);
     await mockBlueprints(page);
     await mockPortraits(page);
 
@@ -99,6 +116,7 @@ test.describe("Auth redirects", () => {
 
   test("returns to the public page after logout", async ({ page }) => {
     await mockAuthenticatedSession(page);
+    await mockPublicConfig(page);
     await mockBlueprints(page);
     await mockPortraits(page);
     await page.route(/\/login(\?.*)?$/, async (route: Route) => {
