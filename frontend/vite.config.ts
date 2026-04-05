@@ -22,92 +22,60 @@ const allowedHosts = Array.from(
 );
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    TanStackRouterVite({
-      target: "react",
-      autoCodeSplitting: true,
-    }),
-    react(),
-    tailwindcss(),
-  ],
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return;
+export default defineConfig(({ mode }) => {
+  const analyze = mode === "analyze";
 
-          if (
-            id.includes("node_modules/react/") ||
-            id.includes("node_modules/react-dom/")
-          ) {
-            return "react-vendor";
-          }
+  return {
+    plugins: [
+      TanStackRouterVite({
+        target: "react",
+        autoCodeSplitting: true,
+      }),
+      react(),
+      tailwindcss(),
+    ],
+    build: {
+      // Let Vite and Rollup own shared-chunking so route splitting stays intact
+      // without creating custom vendor cycles at startup.
+      manifest: analyze,
+      sourcemap: analyze,
+    },
+    server: {
+      port: 3000,
+      allowedHosts,
 
-          if (id.includes("node_modules/@tanstack/")) {
-            return "tanstack-vendor";
-          }
-
-          if (id.includes("node_modules/@heroui/")) {
-            return "heroui-vendor";
-          }
-
-          if (
-            id.includes("node_modules/framer-motion/") ||
-            id.includes("node_modules/motion-")
-          ) {
-            return "motion-vendor";
-          }
-
-          if (
-            id.includes("node_modules/@react-aria/") ||
-            id.includes("node_modules/@react-stately/") ||
-            id.includes("node_modules/@react-types/") ||
-            id.includes("node_modules/@internationalized/")
-          ) {
-            return "react-aria-vendor";
-          }
-
-          return "vendor";
+      proxy: {
+        "/api": {
+          target: base,
+          changeOrigin: true,
+        },
+        "/session": {
+          target: base,
+          changeOrigin: true,
+        },
+        "/logout": {
+          target: base,
+          changeOrigin: true,
+        },
+        "/login": {
+          target: base,
+          changeOrigin: true,
+        },
+        "/login/char": {
+          target: base,
+          changeOrigin: true,
+        },
+        "/login/scope": {
+          target: base,
+          changeOrigin: true,
         },
       },
     },
-  },
-  server: {
-    port: 3000,
-    allowedHosts,
-
-    proxy: {
-      "/api": {
-        target: base,
-        changeOrigin: true,
-      },
-      "/session": {
-        target: base,
-        changeOrigin: true,
-      },
-      "/logout": {
-        target: base,
-        changeOrigin: true,
-      },
-      "/login": {
-        target: base,
-        changeOrigin: true,
-      },
-      "/login/char": {
-        target: base,
-        changeOrigin: true,
-      },
-      "/login/scope": {
-        target: base,
-        changeOrigin: true,
-      },
+    ssr: {
+      noExternal: ["framer-motion", "@heroui/react"],
     },
-  },
-  ssr: {
-    noExternal: ["framer-motion", "@heroui/react"],
-  },
-  optimizeDeps: {
-    include: ["framer-motion"],
-  },
+    optimizeDeps: {
+      include: ["framer-motion"],
+    },
+  };
 });

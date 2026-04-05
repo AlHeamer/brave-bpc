@@ -48,21 +48,23 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: '24.x'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
 
       - name: npm ci
         run: |
           cd frontend/
-          npm ci --legacy-peer-deps
+          npm ci
 
-      - name: test frontend
+      - name: audit frontend production deps
         run: |
           cd frontend/
-          npx tsc -b
+          npm run audit:prod
 
       - name: build frontend
         run: |
           cd frontend/
-          npx vite build
+          npm run build
 
 # Collect and create artifacts for release
       - name: collect and create artifacts
