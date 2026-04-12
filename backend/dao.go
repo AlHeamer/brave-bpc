@@ -214,7 +214,12 @@ func (d *dao) addScopes(logger *zap.Logger, userId int64, toonId int64, scopes [
 		// no need to store a token if there's no scopes
 		return nil
 	}
-	slices.Sort(scopes)
+	// HACK: temp fix to AddParams panic
+	scopeString := make([]string, len(scopes))
+	for i, v := range scopes {
+		scopeString[i] = string(v)
+	}
+	slices.Sort(scopeString)
 
 	// TODO: check if this toon already has the scope, and remove it or replace it.
 	var (
