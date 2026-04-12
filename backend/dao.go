@@ -235,7 +235,7 @@ FROM scope
 WHERE
 user_id = ` + params.AddParam(userId) + ` AND
 toon_id = ` + params.AddParam(toonId) + ` AND
-scope IN(` + params.AddParams(scopes) + `)
+scope IN(` + params.AddParams(scopeString) + `)
 `
 	rows, err = d.db.Query(query, params...)
 
