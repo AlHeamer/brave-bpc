@@ -147,7 +147,9 @@ func main() {
 	go func() {
 		logger.Info("http service listening",
 			zap.String("port", app.runtimeConfig.httpPort),
-			zap.String("environment", app.runtimeConfig.environment))
+			zap.String("environment", app.runtimeConfig.environment),
+			zap.String("esi_user_agent", esiUserAgent),
+			zap.String("esi_compat_date", esiCompatDate))
 
 		if err := server.ListenAndServe(); err != nil {
 			logger.Error("error serving http", zap.Error(err))
