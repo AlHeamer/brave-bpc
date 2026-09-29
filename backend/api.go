@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -415,6 +416,10 @@ func (app *app) postRequisitionOrder(w http.ResponseWriter, r *http.Request) {
 		httpError(w, "invalid request", http.StatusBadRequest)
 		return
 	}
+
+	slices.SortStableFunc(bpReq.Blueprints, func(i, j requestedBlueprint) int {
+		return strings.Compare(i.Name, j.Name)
+	})
 
 	if err := app.dao.createRequisition(user.CharacterId, user.CharacterName, bpReq.Blueprints); err != nil {
 		httpError(w, "error creating requisition", http.StatusInternalServerError)
