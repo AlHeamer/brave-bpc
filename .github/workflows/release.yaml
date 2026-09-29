@@ -13,7 +13,7 @@ env:
 
 jobs:
   release:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     steps:
       - name: checkout
         uses: actions/checkout@v6
@@ -31,7 +31,7 @@ jobs:
       - name: setup go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.26.x'
+          go-version: '1.27.x'
 
       - name: test backend
         run: |

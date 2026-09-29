@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	esiUserAgent      = "brave-bpc/0.9.0 (eve:Al Heamer)"
+	esiUserAgent      = "brave-bpc/0.0.0 (eve:Al Heamer)"
 	esiCompatDate     = "2026-07-21"
 	headerPages       = "X-Pages"
 	esiRequestTimeout = 20 * time.Second
