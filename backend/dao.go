@@ -58,13 +58,13 @@ LIMIT 1
 	return conf, nil
 }
 
-func (dao *dao) updateConfig(newConfig *appConfig) error {
+func (d *dao) updateConfig(newConfig *appConfig) error {
 	jsonConfig, err := json.Marshal(newConfig)
 	if err != nil {
 		return fmt.Errorf("error marshaling config json: %w", err)
 	}
 
-	_, err = dao.db.Exec(`
+	_, err = d.db.Exec(`
 UPDATE config
 SET config=?
 `, jsonConfig)
@@ -93,6 +93,7 @@ AND s.scope IN(`+params.AddParams(roles)+`)
 		logger.Error("could not fetch refresh token", zap.Error(err))
 		return nil
 	}
+	defer rows.Close()
 
 	var tsps []scopeRefreshPair
 	for rows.Next() {
@@ -138,7 +139,7 @@ character_id = ? AND
 owner_hash = ?
 `, characterId, ownerHash).Scan(&userId)
 
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		logger.Error("error finding user", zap.Error(err))
 	}
 
@@ -186,7 +187,7 @@ user_id=?
 
 	if err == nil {
 		return toonId, true, false
-	} else if err != sql.ErrNoRows {
+	} else if !errors.Is(err, sql.ErrNoRows) {
 		logger.Error("error getting toon", zap.Error(err))
 		return 0, false, false
 	}
@@ -238,11 +239,11 @@ toon_id = ` + params.AddParam(toonId) + ` AND
 scope IN(` + params.AddParams(scopeString) + `)
 `
 	rows, err = d.db.Query(query, params...)
-
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		logger.Error("error fetching existing roles", zap.Error(err))
 		return err
 	}
+	defer rows.Close()
 
 	foundScopes := make([]string, 0, len(scopes))
 	for rows.Next() {
@@ -339,13 +340,13 @@ func (d *dao) runMigrations(logger *zap.Logger, migrateDown bool) {
 	}
 }
 
-func (dao *dao) createRequisition(characterId int64, characterName string, blueprints []requestedBlueprint) error {
+func (d *dao) createRequisition(characterId int64, characterName string, blueprints []requestedBlueprint) error {
 	bytes, err := json.Marshal(blueprints)
 	if err != nil {
 		return fmt.Errorf("error marshalling json: %w", err)
 	}
 
-	_, err = dao.db.Exec(`
+	_, err = d.db.Exec(`
 INSERT INTO requisition_order
 (character_id, blueprints, updated_by, character_name)
 VALUES (?,?,?,?)
@@ -354,7 +355,7 @@ VALUES (?,?,?,?)
 	return err
 }
 
-func (dao *dao) listRequisitionOrders(characterId int64, status requisitionStatus) ([]requisitionOrder, error) {
+func (d *dao) listRequisitionOrders(characterId int64, status requisitionStatus) ([]requisitionOrder, error) {
 	params := sqlparams.New()
 	// Status param moved to before character ID due to ordering in query
 	filter := "1=1"
@@ -367,7 +368,7 @@ func (dao *dao) listRequisitionOrders(characterId int64, status requisitionStatu
 		params.AddParam(characterId)
 	}
 
-	rows, err := dao.db.Query(`
+	rows, err := d.db.Query(`
 SELECT *
 FROM requisition_order
 WHERE `+filter+`
@@ -376,8 +377,9 @@ ORDER BY created_at ASC
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	reqs := []requisitionOrder{}
+	var reqs []requisitionOrder
 	for rows.Next() {
 		var notes sql.NullString
 		var req requisitionOrder
@@ -400,11 +402,11 @@ ORDER BY created_at ASC
 	return reqs, nil
 }
 
-func (dao *dao) getRequisition(reqId int64) (*requisitionOrder, error) {
+func (d *dao) getRequisition(reqId int64) (*requisitionOrder, error) {
 	var bpjs []byte
 	var req requisitionOrder
 	var notes sql.NullString
-	err := dao.db.QueryRow(`
+	err := d.db.QueryRow(`
 SELECT *
 FROM requisition_order
 WHERE id=?
@@ -432,8 +434,8 @@ WHERE id=?
 	return &req, nil
 }
 
-func (dao *dao) cancelRequisition(reqId int64, updatedBy string) error {
-	_, err := dao.db.Exec(`
+func (d *dao) cancelRequisition(reqId int64, updatedBy string) error {
+	_, err := d.db.Exec(`
 UPDATE requisition_order
 SET
 	requisition_status=?,
@@ -446,8 +448,8 @@ WHERE
 	return err
 }
 
-func (dao *dao) completeRequisition(reqId int64, updatedBy string, notes string) error {
-	_, err := dao.db.Exec(`
+func (d *dao) completeRequisition(reqId int64, updatedBy string, notes string) error {
+	_, err := d.db.Exec(`
 UPDATE requisition_order
 SET
 	requisition_status=?,
@@ -461,8 +463,8 @@ WHERE
 	return err
 }
 
-func (dao *dao) rejectRequisition(reqId int64, updatedBy string, notes string) error {
-	_, err := dao.db.Exec(`
+func (d *dao) rejectRequisition(reqId int64, updatedBy string, notes string) error {
+	_, err := d.db.Exec(`
 UPDATE requisition_order
 SET
 	requisition_status=?,

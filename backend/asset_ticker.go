@@ -203,31 +203,23 @@ func (app *app) updateBlueprintInventory(ctx context.Context, logger *zap.Logger
 
 	wg := sync.WaitGroup{}
 	if len(unknownLocationIds) > 0 || !incremental {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			inv.hangarNames = app.fetchCorpHangarNames(ctx, logger)
-		}()
+		})
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			inv.containerNames = app.fetchCorpItemNames(ctx, logger, unknownLocationIds)
-		}()
+		})
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			inv.assets, _ = app.fetchCorpAssets(ctx, logger)
-		}()
+		})
 	}
 
 	if len(unknownTypeIds) > 0 || !incremental {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			inv.typeNames = app.fetchTypeNames(ctx, logger, glue.NameCategory_InventoryType, unknownTypeIds)
-		}()
+		})
 	}
 
 	wg.Wait()
@@ -251,7 +243,7 @@ func (app *app) fetchCorpAssets(ctx context.Context, logger *zap.Logger) ([]esi.
 		reqCtx, cancel := context.WithTimeout(ctx, esiRequestTimeout)
 		defer cancel()
 
-		ap, resp, err := app.esi.ESI.AssetsAPI.GetCorporationsCorporationIdAssets(reqCtx, int64(app.config.AdminCorp)).
+		ap, resp, err := app.esi.ESI.AssetsAPI.GetCorporationsCorporationIdAssets(reqCtx, app.config.AdminCorp).
 			XCompatibilityDate(esiCompatDate).
 			Page(page).Execute()
 		if err != nil {
@@ -301,7 +293,7 @@ func (app *app) fetchCorpBlueprints(ctx context.Context, logger *zap.Logger) ([]
 		reqCtx, cancel := context.WithTimeout(ctx, esiRequestTimeout)
 		defer cancel()
 
-		bp, resp, err := app.esi.ESI.CorporationAPI.GetCorporationsCorporationIdBlueprints(reqCtx, int64(app.config.AdminCorp)).
+		bp, resp, err := app.esi.ESI.CorporationAPI.GetCorporationsCorporationIdBlueprints(reqCtx, app.config.AdminCorp).
 			XCompatibilityDate(esiCompatDate).
 			Page(page).
 			Execute()
@@ -473,7 +465,7 @@ func (app *app) fetchCorpItemNames(ctx context.Context, logger *zap.Logger, item
 		cctx, cancel := context.WithTimeout(ctx, esiRequestTimeout)
 		defer cancel()
 
-		namePage, resp, err := app.esi.ESI.AssetsAPI.PostCorporationsCorporationIdAssetsNames(cctx, int64(app.config.AdminCorp)).
+		namePage, resp, err := app.esi.ESI.AssetsAPI.PostCorporationsCorporationIdAssetsNames(cctx, app.config.AdminCorp).
 			RequestBody(chunk).
 			XCompatibilityDate(esiCompatDate).
 			Execute()
@@ -502,7 +494,7 @@ func (app *app) fetchCorpHangarNames(ctx context.Context, logger *zap.Logger) []
 
 	out := []string{"Division 1", "Division 2", "Division 3", "Division 4", "Division 5", "Division 6", "Division 7"}
 
-	divisions, resp, err := app.esi.ESI.CorporationAPI.GetCorporationsCorporationIdDivisions(reqCtx, int64(app.config.AdminCorp)).
+	divisions, resp, err := app.esi.ESI.CorporationAPI.GetCorporationsCorporationIdDivisions(reqCtx, app.config.AdminCorp).
 		XCompatibilityDate(esiCompatDate).
 		Execute()
 	if err != nil {

@@ -1,2 +1,4 @@
 openapi.yaml
 openapi.json
+.DS_Store
+.vscode/
