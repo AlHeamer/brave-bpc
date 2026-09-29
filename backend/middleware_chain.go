@@ -1,5 +1,7 @@
 package main
 
+import "slices"
+
 import "net/http"
 
 type middleware func(http.Handler) http.Handler
@@ -26,8 +28,8 @@ func (c *mwChain) Handle(h http.Handler) http.Handler {
 	}
 
 	wrap := h
-	for i := len(c.chain) - 1; i >= 0; i-- {
-		wrap = c.chain[i](wrap)
+	for _, v := range slices.Backward(c.chain) {
+		wrap = v(wrap)
 	}
 
 	return wrap

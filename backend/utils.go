@@ -225,8 +225,8 @@ func sameBlueprintQuality(a esi.CorporationsCorporationIdBlueprintsGetInner, b e
 
 func parseEsiError(err error) string {
 	s := map[string]string{}
-	if e, ok := err.(esi.GenericOpenAPIError); ok {
-		json.Unmarshal(e.Body(), &s)
+	if e, ok := errors.AsType[esi.GenericOpenAPIError](err); ok {
+		_ = json.Unmarshal(e.Body(), &s)
 	}
 	return s["error"]
 }

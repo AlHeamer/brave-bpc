@@ -203,31 +203,23 @@ func (app *app) updateBlueprintInventory(ctx context.Context, logger *zap.Logger
 
 	wg := sync.WaitGroup{}
 	if len(unknownLocationIds) > 0 || !incremental {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			inv.hangarNames = app.fetchCorpHangarNames(ctx, logger)
-		}()
+		})
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			inv.containerNames = app.fetchCorpItemNames(ctx, logger, unknownLocationIds)
-		}()
+		})
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			inv.assets, _ = app.fetchCorpAssets(ctx, logger)
-		}()
+		})
 	}
 
 	if len(unknownTypeIds) > 0 || !incremental {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			inv.typeNames = app.fetchTypeNames(ctx, logger, glue.NameCategory_InventoryType, unknownTypeIds)
-		}()
+		})
 	}
 
 	wg.Wait()
